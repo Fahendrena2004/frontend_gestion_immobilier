@@ -1,76 +1,56 @@
-import React, { createContext, useState, useEffect } from 'react';
-import api from '../lib/api';
+import { createContext, useContext, useEffect, useState, useCallback } from 'react'
+import { authService } from '@/services/authService'
+import { getToken } from '@/lib/axios'
 
-export const AuthContext = createContext(null);
+const AuthContext = createContext(null)
 
-export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(() => {
-    const savedUser = localStorage.getItem('user');
-    return savedUser ? JSON.parse(savedUser) : null;
-  });
-  const [token, setToken] = useState(() => localStorage.getItem('token') || null);
-  const [loading, setLoading] = useState(true);
+export function AuthProvider({ children }) {
+  const [user, setUser] = useState(null)
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    const checkAuth = async () => {
-      if (token) {
-        try {
-          const res = await api.get('/auth/me');
-          if (res.data && res.data.user) {
-            setUser(res.data.user);
-            localStorage.setItem('user', JSON.stringify(res.data.user));
-          }
-        } catch (err) {
-          console.error("Auth check failed:", err);
-          logout();
-        }
-      }
-      setLoading(false);
-    };
-
-    checkAuth();
-  }, [token]);
-
-  const login = (userData, authToken) => {
-    setUser(userData);
-    setToken(authToken);
-    localStorage.setItem('token', authToken);
-    localStorage.setItem('user', JSON.stringify(userData));
-  };
-
-  const logout = async () => {
-    try {
-      if (token) {
-        await api.post('/auth/logout');
-      }
-    } catch (err) {
-      console.error("Logout error:", err);
-    } finally {
-      setUser(null);
-      setToken(null);
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
+    const token = getToken()
+    const stored = localStorage.getItem('toko_fianar_user')
+    if (token && stored) {
+      setUser(JSON.parse(stored))
     }
-  };
+    setLoading(false)
+  }, [])
 
-  const hasRole = (...roles) => {
-    if (!user || !user.role) return false;
-    return roles.includes(user.role);
-  };
+  const login = useCallback(async (credentials) => {
+    const { user: loggedUser, token } = await authService.login(credentials)
+    localStorage.setItem('toko_fianar_user', JSON.stringify(loggedUser))
+    setUser(loggedUser)
+    return loggedUser
+  }, [])
 
-  return (
-    <AuthContext.Provider
-      value={{
-        user,
-        token,
-        loading,
-        login,
-        logout,
-        isAuthenticated: !!token,
-        hasRole,
-      }}
-    >
-      {children}
-    </AuthContext.Provider>
-  );
-};
+  const register = useCallback(async (payload) => {
+    const { user: newUser } = await authService.register(payload)
+    localStorage.setItem('toko_fianar_user', JSON.stringify(newUser))
+    setUser(newUser)
+    return newUser
+  }, [])
+
+  const logout = useCallback(() => {
+    authService.logout()
+    setUser(null)
+  }, [])
+
+  const value = {
+    user,
+    role: user?.role || null,
+    isAuthenticated: !!user,
+    loading,
+    login,
+    register,
+    logout,
+  }
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
+}
+
+export function useAuth() {
+  const ctx = useContext(AuthContext)
+  if (!ctx) throw new Error('useAuth doit être utilisé dans un <AuthProvider>')
+  return ctx
+}
