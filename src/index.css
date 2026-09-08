@@ -1,0 +1,106 @@
+@import "tailwindcss";
+
+/* =========================================================
+   DESIGN TOKENS — Toko Fianar
+   Palette "immobilier de confiance" : bleu ardoise profond
+   (autorité, sécurité) + or mat (valeur, premium) + vert
+   emeraude (disponibilité) sur fond neutre froid.
+   ========================================================= */
+@theme {
+  --font-display: "Sora", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+
+  /* Bleu ardoise — couleur de marque principale */
+  --color-brand-50: #eef2f7;
+  --color-brand-100: #d6e0ea;
+  --color-brand-200: #adc1d6;
+  --color-brand-300: #7e9cbb;
+  --color-brand-400: #4d729b;
+  --color-brand-500: #2c527c;
+  --color-brand-600: #1c3c62;
+  --color-brand-700: #152f4e;
+  --color-brand-800: #0f2338;
+  --color-brand-900: #0a1826;
+
+  /* Or mat — accent de valeur, réservé aux actions clés */
+  --color-gold-50: #faf6ec;
+  --color-gold-100: #f0e4c4;
+  --color-gold-300: #dcb96a;
+  --color-gold-500: #bd8f34;
+  --color-gold-600: #9c7327;
+  --color-gold-700: #7a5a1e;
+
+  /* Emeraude — statuts positifs / disponibilité */
+  --color-emerald-50: #eaf5f1;
+  --color-emerald-300: #7fc4ac;
+  --color-emerald-500: #2f8a6c;
+  --color-emerald-600: #226b53;
+
+  /* Brique — statuts négatifs / alertes */
+  --color-brick-50: #fbeeec;
+  --color-brick-300: #e2a49b;
+  --color-brick-500: #b3453a;
+  --color-brick-600: #8f362d;
+
+  /* Ambre — statuts en attente */
+  --color-amber-50: #fbf3e6;
+  --color-amber-300: #ecc27d;
+  --color-amber-500: #c68a26;
+
+  /* Neutres froids */
+  --color-ink-950: #10151c;
+  --color-ink-900: #161c25;
+  --color-ink-700: #3c4753;
+  --color-ink-500: #6b7684;
+  --color-ink-300: #aab3bd;
+  --color-ink-200: #d7dbe1;
+  --color-ink-100: #eceef1;
+  --color-ink-50: #f5f6f8;
+
+  --radius-sm: 0.375rem;
+  --radius-md: 0.625rem;
+  --radius-lg: 1rem;
+  --radius-xl: 1.5rem;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: var(--font-sans);
+  color: var(--color-ink-900);
+  background-color: var(--color-ink-50);
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3, h4, .font-display {
+  font-family: var(--font-display);
+  letter-spacing: -0.01em;
+}
+
+::selection {
+  background-color: var(--color-gold-100);
+  color: var(--color-brand-800);
+}
+
+/* Visible keyboard focus everywhere */
+:focus-visible {
+  outline: 2px solid var(--color-brand-500);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Scrollbar discrète */
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-thumb { background-color: var(--color-ink-200); border-radius: 999px; }
+::-webkit-scrollbar-thumb:hover { background-color: var(--color-ink-300); }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
