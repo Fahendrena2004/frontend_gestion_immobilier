@@ -1,8 +1,8 @@
 import { Link } from 'react-router-dom'
-import { BedDouble, MapPin, Ruler, ArrowRight } from 'lucide-react'
+import { BedDouble, MapPin, Ruler, ArrowRight, Clock } from 'lucide-react'
 import { Card } from '@/components/ui/Card'
 import StatusBadge from '@/components/shared/StatusBadge'
-import { formatMoney } from '@/lib/utils'
+import { formatMoney, formatRelativeDate } from '@/lib/utils'
 
 export default function PropertyCard({ property, actions }) {
   const isAvailable = property.statut === 'DISPONIBLE'
@@ -45,6 +45,10 @@ export default function PropertyCard({ property, actions }) {
           <p className="mt-1 flex items-center gap-1 text-sm text-ink-500">
             <MapPin className="h-3.5 w-3.5 shrink-0" />
             {property.quartier}, Fianarantsoa
+          </p>
+          <p className="mt-1 flex items-center gap-1 text-xs text-ink-400">
+            <Clock className="h-3 w-3 shrink-0" />
+            {formatRelativeDate(property.dateAjout)}
           </p>
         </div>
 

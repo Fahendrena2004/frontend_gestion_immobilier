@@ -14,7 +14,7 @@ export default function ProprietaireDashboard() {
   const [demandes, setDemandes] = useState([])
 
   useEffect(() => {
-    propertyService.search({ proprietaireId: user?.id }).then((data) => setLogements(data.length ? data : []))
+    propertyService.search({ proprietaireId: user?.id }).then(({ items }) => setLogements(items))
     rentalService.listDemandes().then(setDemandes)
   }, [user])
 
