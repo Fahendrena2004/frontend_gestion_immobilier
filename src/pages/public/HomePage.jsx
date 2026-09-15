@@ -9,6 +9,7 @@ import EmptyState from '@/components/shared/EmptyState'
 import Button from '@/components/ui/Button'
 import Input from '@/components/ui/Input'
 import Select from '@/components/ui/Select'
+import { cn } from '@/lib/utils'
 import { propertyService } from '@/services/propertyService'
 import { QUARTIERS } from '@/data/mockData'
 import useInView from '@/hooks/useInView'
@@ -53,12 +54,14 @@ export default function HomePage() {
   const navigate = useNavigate()
   const [properties, setProperties] = useState([])
   const [equipements, setEquipements] = useState([])
+  const [types, setTypes] = useState([])
   const [loading, setLoading] = useState(true)
   const [filters, setFilters] = useState({ q: '', quartier: '', type: '', prixMax: '', piecesMin: '', equipements: [] })
   const [showFilters, setShowFilters] = useState(false)
 
   useEffect(() => {
     propertyService.listEquipements().then(setEquipements)
+    propertyService.listTypes().then(setTypes)
   }, [])
 
   useEffect(() => {

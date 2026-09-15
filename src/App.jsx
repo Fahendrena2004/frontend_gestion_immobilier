@@ -26,6 +26,8 @@ import GestionComptesPage from '@/pages/admin/GestionComptesPage'
 import PaiementsVerificationPage from '@/pages/admin/PaiementsVerificationPage'
 import StatistiquesPage from '@/pages/admin/StatistiquesPage'
 
+import ProfilPage from '@/pages/shared/ProfilPage'
+
 export default function App() {
   return (
     <Routes>
@@ -52,6 +54,7 @@ export default function App() {
         <Route path="demandes" element={<MesDemandesPage />} />
         <Route path="visites" element={<MesVisitesPage />} />
         <Route path="location" element={<MaLocationPage />} />
+        <Route path="profil" element={<ProfilPage />} />
       </Route>
 
       {/* Espace propriétaire (US-P-*) */}
@@ -69,6 +72,7 @@ export default function App() {
         <Route path="logements/:id/modifier" element={<LogementFormPage />} />
         <Route path="demandes" element={<DemandesRecuesPage />} />
         <Route path="visites" element={<VisitesPage />} />
+        <Route path="profil" element={<ProfilPage />} />
       </Route>
 
       {/* Espace administrateur (US-A-*) */}
@@ -85,6 +89,7 @@ export default function App() {
         <Route path="comptes" element={<GestionComptesPage />} />
         <Route path="paiements" element={<PaiementsVerificationPage />} />
         <Route path="statistiques" element={<StatistiquesPage />} />
+        <Route path="profil" element={<ProfilPage />} />
       </Route>
 
       {/* 404 */}

@@ -87,19 +87,28 @@ export const authService = {
     return mapUser(data)
   },
 
-  async changePassword() {
+  async changePassword({ currentPassword, newPassword, newPasswordConfirmation }) {
     if (USE_MOCK) return mockResolve({ success: true })
-    return Promise.reject({
-      status: 501,
-      message: "Le changement de mot de passe n'est pas encore disponible côté serveur.",
+    const { data } = await api.put('/users/password', {
+      current_password: currentPassword,
+      new_password: newPassword,
+      new_password_confirmation: newPasswordConfirmation,
     })
+    return data
   },
 
   logout() {
     if (!USE_MOCK) {
-      api.post('/auth/logout').catch(() => {})
+      api.post('/auth/logout')
+        .then(() => {})
+        .catch(() => {})
+        .finally(() => {
+          setToken(null)
+          localStorage.removeItem('toko_fianar_user')
+        })
+    } else {
+      setToken(null)
+      localStorage.removeItem('toko_fianar_user')
     }
-    setToken(null)
-    localStorage.removeItem('toko_fianar_user')
   },
 }

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Download, FileText, Home } from 'lucide-react'
+import { Download, FileText, Home, AlertCircle, CheckCircle } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card'
 import { Table, Thead, Th, Tr, Td } from '@/components/ui/Table'
 import Button from '@/components/ui/Button'
@@ -18,6 +18,7 @@ export default function MaLocationPage() {
   const [dialogFacture, setDialogFacture] = useState(null)
   const [payForm, setPayForm] = useState({ mode: '', reference: '', preuve: null })
   const [submitting, setSubmitting] = useState(false)
+  const [downloadState, setDownloadState] = useState({ type: null, loading: false, error: null })
 
   useEffect(() => {
     contractService.getMaLocationActive().then(setLocation)
@@ -41,6 +42,44 @@ export default function MaLocationPage() {
     setSubmitting(false)
     setDialogFacture(null)
     setPayForm({ mode: '', reference: '', preuve: null })
+  }
+
+  async function handleDownloadContrat() {
+    if (!location?.contrat?.id) return
+    setDownloadState({ type: 'contrat', loading: true, error: null })
+    try {
+      const blob = await contractService.downloadContratPdf(location.contrat.id)
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `contrat-${location.contrat.id}.pdf`
+      document.body.appendChild(a)
+      a.click()
+      a.remove()
+      window.URL.revokeObjectURL(url)
+      setDownloadState({ type: null, loading: false, error: null })
+    } catch (err) {
+      setDownloadState({ type: 'contrat', loading: false, error: err.message || 'Erreur lors du téléchargement du contrat' })
+    }
+  }
+
+  async function handleDownloadQuittance(quittanceId) {
+    if (!quittanceId) return
+    setDownloadState({ type: 'quittance', loading: true, error: null })
+    try {
+      const blob = await financeService.downloadQuittance(quittanceId)
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `quittance-${quittanceId}.pdf`
+      document.body.appendChild(a)
+      a.click()
+      a.remove()
+      window.URL.revokeObjectURL(url)
+      setDownloadState({ type: null, loading: false, error: null })
+    } catch (err) {
+      setDownloadState({ type: 'quittance', loading: false, error: err.message || 'Erreur lors du téléchargement de la quittance' })
+    }
   }
 
   if (!location) {
@@ -74,9 +113,33 @@ export default function MaLocationPage() {
             {contrat.conditionsParticulieres && (
               <p className="mt-1 rounded-md bg-ink-50 p-3 text-xs text-ink-600">{contrat.conditionsParticulieres}</p>
             )}
-            <Button variant="outline" size="sm" className="mt-2">
-              <Download className="h-4 w-4" /> Télécharger le contrat (PDF)
+            <Button
+              variant="outline"
+              size="sm"
+              className="mt-2 w-full"
+              onClick={handleDownloadContrat}
+              disabled={downloadState.loading}
+            >
+              {downloadState.type === 'contrat' && downloadState.loading ? (
+                <>
+                  <svg className="mr-2 h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                  </svg>
+                  Téléchargement...
+                </>
+              ) : (
+                <>
+                  <Download className="h-4 w-4" /> Télécharger le contrat (PDF)
+                </>
+              )}
             </Button>
+            {downloadState.type === 'contrat' && downloadState.error && (
+              <p className="text-xs text-brick-600 flex items-center gap-1">
+                <AlertCircle className="h-3.5 w-3.5" />
+                {downloadState.error}
+              </p>
+            )}
           </CardContent>
         </Card>
 
@@ -126,10 +189,33 @@ export default function MaLocationPage() {
                 </div>
                 <div className="flex items-center gap-3">
                   <StatusBadge status={p.statut} />
-                  {p.statut === 'VALIDE' && (
-                    <Button variant="outline" size="sm">
-                      <FileText className="h-3.5 w-3.5" /> Quittance
+                  {p.statut === 'VALIDE' && p.quittanceId && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleDownloadQuittance(p.quittanceId)}
+                      disabled={downloadState.type === 'quittance' && downloadState.loading}
+                    >
+                      {downloadState.type === 'quittance' && downloadState.loading ? (
+                        <>
+                          <svg className="mr-2 h-3.5 w-3.5 animate-spin" viewBox="0 0 24 24" fill="none">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                          </svg>
+                          Téléchargement...
+                        </>
+                      ) : (
+                        <>
+                          <FileText className="h-3.5 w-3.5" /> Quittance
+                        </>
+                      )}
                     </Button>
+                  )}
+                  {downloadState.type === 'quittance' && downloadState.error && (
+                    <p className="text-xs text-brick-600 flex items-center gap-1">
+                      <AlertCircle className="h-3.5 w-3.5" />
+                      {downloadState.error}
+                    </p>
                   )}
                 </div>
               </div>

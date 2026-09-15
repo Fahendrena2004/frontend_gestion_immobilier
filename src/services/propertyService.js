@@ -25,7 +25,7 @@ async function ensureQuartiers() {
 async function ensureTypes() {
   if (typesCache) return typesCache
   const { data } = await api.get('/logements/types')
-  typesCache = data
+  typesCache = (Array.isArray(data) ? data : data?.data || []).map((t) => ({ id: t.id, libelle: t.libelle }))
   return typesCache
 }
 
@@ -218,7 +218,8 @@ export const propertyService = {
 
   async listTypes() {
     if (USE_MOCK) return mockResolve(MOCK_TYPES)
-    return ensureTypes()
+    const types = await ensureTypes()
+    return types.map(t => t.libelle)
   },
 
   async listEquipements() {
