@@ -1,24 +1,25 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Search, SlidersHorizontal, MapPin, FileSearch, CalendarCheck, KeyRound } from 'lucide-react'
+import { Search, SlidersHorizontal, MapPin, FileSearch, CalendarCheck, KeyRound, X } from 'lucide-react'
 import PropertyCard from '@/components/shared/PropertyCard'
 import EmptyState from '@/components/shared/EmptyState'
 import Button from '@/components/ui/Button'
 import Input from '@/components/ui/Input'
 import Select from '@/components/ui/Select'
+import { cn } from '@/lib/utils'
 import { propertyService } from '@/services/propertyService'
 import { QUARTIERS } from '@/data/mockData'
-
-const TYPES = ['Villa', 'Appartement', 'Studio', 'Maison', 'Duplex', 'Chambre']
 
 export default function HomePage() {
   const [properties, setProperties] = useState([])
   const [equipements, setEquipements] = useState([])
+  const [types, setTypes] = useState([])
   const [loading, setLoading] = useState(true)
   const [filters, setFilters] = useState({ q: '', quartier: '', type: '', prixMax: '', piecesMin: '', equipements: [] })
   const [showFilters, setShowFilters] = useState(false)
 
   useEffect(() => {
     propertyService.listEquipements().then(setEquipements)
+    propertyService.listTypes().then(setTypes)
   }, [])
 
   useEffect(() => {
@@ -91,10 +92,40 @@ export default function HomePage() {
               <option value="">Tous les quartiers</option>
               {QUARTIERS.map((q) => <option key={q} value={q}>{q}</option>)}
             </Select>
-            <Select label="Type de logement" value={filters.type} onChange={(e) => setFilters((f) => ({ ...f, type: e.target.value }))}>
-              <option value="">Tous les types</option>
-              {TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
-            </Select>
+
+            <div>
+              <label className="block mb-1.5 text-sm font-medium text-ink-700">Type de logement</label>
+              <div className="flex gap-2 overflow-x-auto pb-2 -mx-1 px-1 scrollbar-hide">
+                <button
+                  type="button"
+                  onClick={() => setFilters((f) => ({ ...f, type: '' }))}
+                  className={cn(
+                    'whitespace-nowrap rounded-full border px-3 py-1.5 text-xs font-medium transition-colors flex-shrink-0',
+                    filters.type === ''
+                      ? 'border-brand-600 bg-brand-50 text-brand-700'
+                      : 'border-ink-200 text-ink-600 hover:border-ink-300'
+                  )}
+                >
+                  Tous
+                </button>
+                {types.map((t) => (
+                  <button
+                    key={t}
+                    type="button"
+                    onClick={() => setFilters((f) => ({ ...f, type: t }))}
+                    className={cn(
+                      'whitespace-nowrap rounded-full border px-3 py-1.5 text-xs font-medium transition-colors flex-shrink-0',
+                      filters.type === t
+                        ? 'border-brand-600 bg-brand-50 text-brand-700'
+                        : 'border-ink-200 text-ink-600 hover:border-ink-300'
+                    )}
+                  >
+                    {t}
+                  </button>
+                ))}
+              </div>
+            </div>
+
             <Input
               label="Prix maximum (Ar/mois)"
               type="number"

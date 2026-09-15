@@ -1,7 +1,12 @@
 import { Outlet, Link } from 'react-router-dom'
 import PublicNavbar from './PublicNavbar'
+import MobileTabBar from './MobileTabBar'
+import { useAuth } from '@/context/AuthContext'
 
 export default function PublicLayout() {
+  const { role, isAuthenticated } = useAuth()
+  const isAuthenticatedUser = isAuthenticated && role
+
   return (
     <div className="flex min-h-screen flex-col bg-ink-50">
       <PublicNavbar />
@@ -37,6 +42,7 @@ export default function PublicLayout() {
           </p>
         </div>
       </footer>
+      {isAuthenticatedUser && <MobileTabBar role={role} />}
     </div>
   )
 }

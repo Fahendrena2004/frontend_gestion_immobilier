@@ -8,6 +8,7 @@ import { financeService } from '@/services/financeService'
  * Client du micro-service Contract (contrats de location).
  * Routes réelles : GET /locations (liste avec contrat imbriqué),
  * GET /locations/:id/contrat-pdf (attendu : l'id du CONTRAT).
+ * POST /locations (créer une location depuis une demande acceptée).
  */
 
 function mapContrat(c) {
@@ -65,5 +66,20 @@ export const contractService = {
     if (USE_MOCK) return mockResolve({ url: '#' })
     const { data } = await api.get(`/locations/${contratId}/contrat-pdf`, { responseType: 'blob' })
     return data
+  },
+
+  // Crée une location (et son contrat) depuis une demande acceptée.
+  // payload: { demandeId, dateDebut, montantLoyer, montantCaution?, conditions? }
+  async createLocation(payload) {
+    if (USE_MOCK) return mockResolve({ id: `loc-${Date.now()}`, ...payload, statut: 'EN_COURS' })
+    const body = {
+      demande_id: payload.demandeId,
+      date_debut: payload.dateDebut,
+      montant_loyer: payload.montantLoyer,
+      montant_caution: payload.montantCaution,
+      conditions: payload.conditions,
+    }
+    const { data } = await api.post('/locations', body)
+    return mapLocation(data)
   },
 }
