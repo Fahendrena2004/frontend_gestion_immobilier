@@ -2,13 +2,45 @@ import { useEffect } from 'react'
 import { X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
-export default function Dialog({ open, onClose, title, description, footer, children, className }) {
+export function DialogContent({ className, children }) {
+  return (
+    <div className={cn('mt-4', className)}>
+      {children}
+    </div>
+  )
+}
+
+export function DialogFooter({ className, children }) {
+  return (
+    <div
+      className={cn(
+        'mt-6 flex justify-end gap-2',
+        className
+      )}
+    >
+      {children}
+    </div>
+  )
+}
+
+export default function Dialog({
+  open,
+  onClose,
+  title,
+  description,
+  footer,
+  children,
+  className,
+}) {
   useEffect(() => {
     if (!open) return
+
     function onKeyDown(e) {
       if (e.key === 'Escape') onClose?.()
     }
+
     document.addEventListener('keydown', onKeyDown)
+
     return () => document.removeEventListener('keydown', onKeyDown)
   }, [open, onClose])
 
@@ -21,6 +53,7 @@ export default function Dialog({ open, onClose, title, description, footer, chil
         onClick={onClose}
         aria-hidden="true"
       />
+
       <div
         role="dialog"
         aria-modal="true"
@@ -39,16 +72,25 @@ export default function Dialog({ open, onClose, title, description, footer, chil
         </button>
 
         {title && (
-          <h2 className="font-display text-lg font-semibold text-ink-900">{title}</h2>
-        )}
-        {description && (
-          <p className="mt-1 text-sm text-ink-500">{description}</p>
+          <h2 className="font-display text-lg font-semibold text-ink-900">
+            {title}
+          </h2>
         )}
 
-        <div className={cn(title || description ? 'mt-4' : '')}>{children}</div>
+        {description && (
+          <p className="mt-1 text-sm text-ink-500">
+            {description}
+          </p>
+        )}
+
+        <div className={cn(title || description ? 'mt-4' : '')}>
+          {children}
+        </div>
 
         {footer && (
-          <div className="mt-6 flex justify-end gap-2">{footer}</div>
+          <div className="mt-6 flex justify-end gap-2">
+            {footer}
+          </div>
         )}
       </div>
     </div>
