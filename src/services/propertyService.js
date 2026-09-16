@@ -18,14 +18,14 @@ let equipementsCache = null
 async function ensureQuartiers() {
   if (quartiersCache) return quartiersCache
   const { data } = await api.get('/logements/quartiers')
-  quartiersCache = data
+  quartiersCache = Array.isArray(data) ? data : data?.data || []
   return quartiersCache
 }
 
 async function ensureTypes() {
   if (typesCache) return typesCache
   const { data } = await api.get('/logements/types')
-  typesCache = data
+  typesCache = Array.isArray(data) ? data : data?.data || []
   return typesCache
 }
 
