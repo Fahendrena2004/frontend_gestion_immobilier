@@ -9,6 +9,7 @@ import EmptyState from '@/components/shared/EmptyState'
 import Button from '@/components/ui/Button'
 import Input from '@/components/ui/Input'
 import Select from '@/components/ui/Select'
+import { cn } from '@/lib/utils'
 import { propertyService } from '@/services/propertyService'
 import useInView from '@/hooks/useInView'
 
@@ -52,16 +53,17 @@ export default function HomePage() {
   const [equipements, setEquipements] = useState([])
   const [quartiers, setQuartiers] = useState([])
   const [types, setTypes] = useState([])
+  const [types, setTypes] = useState([])
   const [loading, setLoading] = useState(true)
   const [meta, setMeta] = useState(null)
   const [filters, setFilters] = useState({ q: '', quartier: '', type: '', prixMax: '', piecesMin: '', equipements: [], page: 1 })
   const [showFilters, setShowFilters] = useState(false)
 
   useEffect(() => {
-    propertyService.listEquipements().then(setEquipements)
-    propertyService.listQuartiers().then(setQuartiers)
-    propertyService.listTypes().then(setTypes)
-  }, [])
+  propertyService.listEquipements().then(setEquipements)
+  propertyService.listQuartiers().then(setQuartiers)
+  propertyService.listTypes().then(setTypes)
+}, [])
 
   useEffect(() => {
     setLoading(true)

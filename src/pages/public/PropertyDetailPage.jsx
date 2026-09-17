@@ -4,7 +4,7 @@ import { BedDouble, Check, Clock, MapPin, Ruler, Send } from 'lucide-react'
 import Button from '@/components/ui/Button'
 import { Card, CardContent } from '@/components/ui/Card'
 import Textarea from '@/components/ui/Textarea'
-import Dialog from '@/components/ui/Dialog'
+import Dialog, { DialogContent, DialogFooter } from '@/components/ui/Dialog'
 import Avatar from '@/components/ui/Avatar'
 import StatusBadge from '@/components/shared/StatusBadge'
 import { propertyService } from '@/services/propertyService'
@@ -123,31 +123,29 @@ export default function PropertyDetailPage() {
       <Dialog
         open={dialogOpen}
         onClose={() => { setDialogOpen(false); setSent(false); setMessage('') }}
-        title={sent ? 'Demande envoyée' : 'Envoyer une demande de location'}
-        description={sent ? undefined : `Pour : ${property.titre}`}
-        footer={
-          !sent && (
-            <>
-              <Button variant="outline" onClick={() => setDialogOpen(false)}>Annuler</Button>
-              <Button onClick={handleSendDemande} disabled={sending || !message.trim()}>
-                {sending ? 'Envoi…' : 'Envoyer la demande'}
-              </Button>
-            </>
-          )
-        }
       >
-        {sent ? (
-          <p className="text-sm text-ink-600">
-            Votre demande a bien été transmise au propriétaire. Vous pouvez suivre son statut depuis
-            votre espace « Mes demandes ».
-          </p>
-        ) : (
-          <Textarea
-            label="Message au propriétaire"
-            placeholder="Présentez-vous et précisez votre projet de location…"
-            value={message}
-            onChange={(e) => setMessage(e.target.value)}
-          />
+        <DialogContent>
+          {sent ? (
+            <p className="text-sm text-ink-600">
+              Votre demande a bien été transmise au propriétaire. Vous pouvez suivre son statut depuis
+              votre espace « Mes demandes ».
+            </p>
+          ) : (
+            <Textarea
+              label="Message au propriétaire"
+              placeholder="Présentez-vous et précisez votre projet de location…"
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
+            />
+          )}
+        </DialogContent>
+        {!sent && (
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDialogOpen(false)}>Annuler</Button>
+            <Button onClick={handleSendDemande} disabled={sending || !message.trim()}>
+              {sending ? 'Envoi…' : 'Envoyer la demande'}
+            </Button>
+          </DialogFooter>
         )}
       </Dialog>
     </div>

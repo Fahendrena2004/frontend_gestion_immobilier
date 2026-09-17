@@ -2,10 +2,12 @@
 
 /* =========================================================
    DESIGN TOKENS — Toko Fianar
+
    Palette "immobilier de confiance" : bleu ardoise profond
    (autorité, sécurité) + or mat (valeur, premium) + vert
    emeraude (disponibilité) sur fond neutre froid.
    ========================================================= */
+
 @theme {
   --font-display: "Sora", ui-sans-serif, system-ui, sans-serif;
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
@@ -74,7 +76,11 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-h1, h2, h3, h4, .font-display {
+h1,
+h2,
+h3,
+h4,
+.font-display {
   font-family: var(--font-display);
   letter-spacing: -0.01em;
 }
@@ -92,16 +98,42 @@ h1, h2, h3, h4, .font-display {
 }
 
 /* Scrollbar discrète */
-::-webkit-scrollbar { width: 8px; height: 8px; }
-::-webkit-scrollbar-thumb { background-color: var(--color-ink-200); border-radius: 999px; }
-::-webkit-scrollbar-thumb:hover { background-color: var(--color-ink-300); }
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: var(--color-ink-200);
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background-color: var(--color-ink-300);
+}
+
+/* Utility to hide scrollbar */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
 
 /* =========================================================
    ANIMATIONS — Marquee, Hero entry, Reveal on scroll
    ========================================================= */
+
 @keyframes marquee {
-  from { transform: translateX(0); }
-  to   { transform: translateX(-50%); }
+  from {
+    transform: translateX(0);
+  }
+
+  to {
+    transform: translateX(-50%);
+  }
 }
 
 .animate-marquee {
@@ -117,6 +149,7 @@ h1, h2, h3, h4, .font-display {
     opacity: 0;
     transform: translateY(14px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -128,12 +161,23 @@ h1, h2, h3, h4, .font-display {
 }
 
 /* Staggered delays for hero children */
-.animate-delay-100 { animation-delay: 100ms; }
-.animate-delay-200 { animation-delay: 200ms; }
-.animate-delay-300 { animation-delay: 300ms; }
+.animate-delay-100 {
+  animation-delay: 100ms;
+}
+
+.animate-delay-200 {
+  animation-delay: 200ms;
+}
+
+.animate-delay-300 {
+  animation-delay: 300ms;
+}
 
 @media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after {
+
+  *,
+  *::before,
+  *::after {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;

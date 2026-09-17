@@ -14,6 +14,7 @@ function mapDemande(d) {
     id: d.id,
     logementId: d.logement_id,
     logementTitre: d.logement?.titre,
+    logementPrix: d.logement?.loyer ? Number(d.logement.loyer) : null,
     locataireId: d.locataire_id,
     locataireNom: d.locataire?.name,
     message: d.message,
@@ -41,6 +42,30 @@ export const rentalService = {
     if (USE_MOCK) return mockResolve(mockDemandes)
     const { data } = await api.get('/demandes', { params: filters })
     return (Array.isArray(data) ? data : data?.data || []).map(mapDemande)
+  },
+
+  // Récupère les locations et crée un map { demandeId -> locationId }
+  async getLocationMapForUser() {
+    if (USE_MOCK) return mockResolve({})
+    const { data } = await api.get('/locations')
+    const locations = (Array.isArray(data) ? data : data?.data || [])
+    const map = {}
+    locations.forEach((loc) => {
+      if (loc.demande_id) map[loc.demande_id] = loc.id
+    })
+    return map
+  },
+
+  // Récupère les demandes enrichies avec locationId si une location existe déjà
+  async listDemandesWithLocation(filters = {}) {
+    const [demandes, locationMap] = await Promise.all([
+      this.listDemandes(filters),
+      this.getLocationMapForUser(),
+    ])
+    return demandes.map((d) => ({
+      ...d,
+      locationId: locationMap[d.id] || null,
+    }))
   },
 
   async createDemande(payload) {
