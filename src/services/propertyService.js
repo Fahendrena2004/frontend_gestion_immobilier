@@ -18,14 +18,17 @@ let equipementsCache = null
 async function ensureQuartiers() {
   if (quartiersCache) return quartiersCache
   const { data } = await api.get('/logements/quartiers')
-  quartiersCache = data
+  quartiersCache = Array.isArray(data) ? data : data?.data || []
   return quartiersCache
 }
 
 async function ensureTypes() {
   if (typesCache) return typesCache
   const { data } = await api.get('/logements/types')
-  typesCache = (Array.isArray(data) ? data : data?.data || []).map((t) => ({ id: t.id, libelle: t.libelle }))
+  typesCache = (Array.isArray(data) ? data : data?.data || []).map((t) => ({
+    id: t.id,
+    libelle: t.libelle,
+  }))
   return typesCache
 }
 
@@ -111,7 +114,21 @@ export const propertyService = {
       }
       if (filters.statut) results = results.filter((p) => p.statut === filters.statut)
       if (filters.proprietaireId) results = results.filter((p) => p.proprietaireId === filters.proprietaireId)
-      return mockResolve(results)
+
+      // Pas de pagination pour les annonces du propriétaire
+      if (filters.proprietaireId) {
+        return mockResolve({ items: results, meta: null })
+      }
+
+      const perPage = 15
+      const page = Number(filters.page) || 1
+      const total = results.length
+      const lastPage = Math.max(1, Math.ceil(total / perPage))
+      const items = results.slice((page - 1) * perPage, page * perPage)
+      return mockResolve({
+        items,
+        meta: { current_page: page, last_page: lastPage, total, per_page: perPage },
+      })
     }
 
     const params = {}
@@ -121,16 +138,15 @@ export const propertyService = {
     if (refs.quartier_id) params.quartier_id = refs.quartier_id
     if (refs.type_logement_id) params.type_logement_id = refs.type_logement_id
 
-    let data
+    let response
     if (filters.proprietaireId) {
-      const { data: d } = await api.get('/logements/mes-annonces')
-      data = d
+      response = await api.get('/logements/mes-annonces')
     } else {
-      const { data: d } = await api.get('/logements', { params })
-      data = d
+      params.page = Number(filters.page) || 1
+      response = await api.get('/logements', { params })
     }
 
-    let list = (Array.isArray(data) ? data : data?.data || []).map(mapLogement)
+    let list = (Array.isArray(response.data) ? response.data : response.data?.data || []).map(mapLogement)
 
     if (filters.q) {
       const q = filters.q.toLowerCase()
@@ -147,7 +163,14 @@ export const propertyService = {
     if (filters.statut) {
       list = list.filter((p) => p.statut === filters.statut)
     }
-    return list
+
+    // Annonces du propriétaire : pas de pagination
+    if (filters.proprietaireId) {
+      return { items: list, meta: null }
+    }
+
+    // Pagination Laravel exposée par l'intercepteur axios (response.meta)
+    return { items: list, meta: response.meta || null }
   },
 
   async getById(id) {
