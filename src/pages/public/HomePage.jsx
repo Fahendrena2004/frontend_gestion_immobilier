@@ -52,8 +52,7 @@ export default function HomePage() {
   const [properties, setProperties] = useState([])
   const [equipements, setEquipements] = useState([])
   const [quartiers, setQuartiers] = useState([])
-  const [types, setTypes] = useState([])
-  const [types, setTypes] = useState([])
+  const [types, setTypes] = useState([]);
   const [loading, setLoading] = useState(true)
   const [meta, setMeta] = useState(null)
   const [filters, setFilters] = useState({ q: '', quartier: '', type: '', prixMax: '', piecesMin: '', equipements: [], page: 1 })
@@ -217,9 +216,9 @@ export default function HomePage() {
               <div className="sm:col-span-2 lg:col-span-4">
                 <p className="mb-2 text-sm font-medium text-ink-700">Équipements</p>
                 <div className="flex flex-wrap gap-2">
-                  {equipements.map((eq) => (
+                  {equipements.map((eq, index) => (
                     <button
-                      key={eq.id}
+                      key={eq.id ?? `equipement-${index}`}
                       type="button"
                       onClick={() => toggleEquipement(eq.id)}
                       className={
