@@ -240,9 +240,8 @@ export const propertyService = {
   },
 
   async listTypes() {
-    if (USE_MOCK) return mockResolve(MOCK_TYPES)
-    const types = await ensureTypes()
-    return types.map(t => t.libelle)
+    if (USE_MOCK) return mockResolve(MOCK_TYPES.map(l => ({ id: l, libelle: l })))
+    return ensureTypes()
   },
 
   async listEquipements() {
