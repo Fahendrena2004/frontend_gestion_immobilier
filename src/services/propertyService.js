@@ -1,251 +1,211 @@
 import api from '@/lib/axios'
-import { USE_MOCK, mockResolve } from '@/lib/mock'
-import { mockProperties, QUARTIERS, EQUIPEMENTS } from '@/data/mockData'
-
-const MOCK_TYPES = ['Villa', 'Appartement', 'Studio', 'Maison', 'Duplex', 'Chambre']
 import { statusToFront } from '@/lib/enums'
 
 /**
- * Client du micro-service Property (logements, annonces, équipements, photos).
- * Routes réelles : /logements + sous-routes (module Logements Laravel).
+ * Module Logements de l'API.
+ *   GET    /logements                     (public, filtré + paginé)
+ *   GET    /logements/quartiers|types|equipements   (référentiels publics)
+ *   GET    /logements/{id}                (public)
+ *   GET    /logements/mes-annonces        (propriétaire)
+ *   POST   /logements                     (propriétaire)
+ *   PUT    /logements/{id}                (propriétaire)
+ *   DELETE /logements/{id}                (propriétaire)
+ *   POST   /logements/{id}/photos         (une photo par requête)
+ *   DELETE /logements/{id}/photos/{photo}
+ *   PATCH  /logements/{id}/photos/{photo}/principale
+ *   PUT    /logements/{id}/equipements
  */
 
-// --- Caches en mémoire (référentiels) ---
+// --- Référentiels : chargés une fois puis gardés en mémoire ---
 let quartiersCache = null
 let typesCache = null
 let equipementsCache = null
 
 async function ensureQuartiers() {
-  if (quartiersCache) return quartiersCache
-  const { data } = await api.get('/logements/quartiers')
-  quartiersCache = Array.isArray(data) ? data : data?.data || []
+  if (!quartiersCache) {
+    const { data } = await api.get('/logements/quartiers')
+    quartiersCache = (data || []).map((q) => ({ id: q.id, nom: q.nom, ville: q.ville }))
+  }
   return quartiersCache
 }
 
 async function ensureTypes() {
-  if (typesCache) return typesCache
-  const { data } = await api.get('/logements/types')
-  typesCache = (Array.isArray(data) ? data : data?.data || []).map((t) => ({
-    id: t.id,
-    libelle: t.libelle,
-  }))
+  if (!typesCache) {
+    const { data } = await api.get('/logements/types')
+    typesCache = (data || []).map((t) => ({ id: t.id, libelle: t.libelle }))
+  }
   return typesCache
 }
 
 async function ensureEquipements() {
-  if (equipementsCache) return equipementsCache
-  const { data } = await api.get('/logements/equipements')
-  equipementsCache = (Array.isArray(data) ? data : data?.data || []).map((e) => ({ id: e.id, nom: e.libelle }))
+  if (!equipementsCache) {
+    const { data } = await api.get('/logements/equipements')
+    equipementsCache = (data || []).map((e) => ({ id: e.id, nom: e.libelle }))
+  }
   return equipementsCache
 }
 
-// Le formulaire frontend manipule des noms lisibles (quartier: "Isotry", type: "Villa"),
-// le backend attend des IDs (quartier_id, type_logement_id).
-async function resolveRefs(form) {
-  const refs = {}
-  if (form.quartier) {
-    const quartiers = await ensureQuartiers()
-    const item = quartiers.find((q) => q.nom === form.quartier)
-    if (item) refs.quartier_id = item.id
+function mapPhoto(photo) {
+  return {
+    id: photo.id,
+    url: photo.chemin, // l'API renvoie déjà une URL absolue
+    estPrincipale: !!photo.est_principale,
   }
-  if (form.type) {
-    const types = await ensureTypes()
-    const item = types.find((t) => t.libelle === form.type)
-    if (item) refs.type_logement_id = item.id
-  }
-  return refs
 }
 
-async function resolveEquipementIds(equipements) {
-  if (!equipements?.length) return []
-  const refs = await ensureEquipements()
-  return equipements.map((e) => {
-    if (typeof e === 'object' && e?.id !== undefined) return e.id
-    const item = refs.find((r) => r.libelle === e || r.nom === e)
-    return item ? item.id : e
-  })
-}
-
+/** Traduit un logement de l'API vers le vocabulaire du frontend. */
 function mapLogement(l) {
-  const photos = (l.photos || []).map((p) => ({
-    id: p.id,
-    url: p.chemin,
-    estPrincipale: p.est_principale,
-  }))
+  const photos = (l.photos || []).map(mapPhoto)
+  const equipements = l.equipements || []
+
   return {
     id: l.id,
     titre: l.titre,
     description: l.description,
     adresse: l.adresse,
-    quartier: l.quartier?.nom,
-    quartierId: l.quartier_id,
-    type: l.type_logement?.libelle,
-    typeLogementId: l.type_logement_id,
+    quartier: l.quartier?.nom ?? null,
+    quartierId: l.quartier?.id ?? l.quartier_id ?? null,
+    type: l.type_logement?.libelle ?? null,
+    typeLogementId: l.type_logement?.id ?? l.type_logement_id ?? null,
     prix: l.loyer != null ? Number(l.loyer) : null,
     caution: l.caution != null ? Number(l.caution) : null,
     pieces: l.nombre_pieces,
     surface: l.superficie != null ? Number(l.superficie) : null,
     statut: statusToFront(l.statut),
     statutModeration: statusToFront(l.statut_moderation),
-    photoPrincipale: l.photo_principale || photos.find((p) => p.estPrincipale)?.url || null,
+    photoPrincipale: l.photo_principale || photos.find((p) => p.estPrincipale)?.url || photos[0]?.url || null,
     photos,
-    equipements: (l.equipements || []).map((e) => e.id),
-    equipementsDetail: (l.equipements || []).map((e) => ({ id: e.id, nom: e.libelle })),
-    proprietaireId: l.proprietaire_id,
-    proprietaireNom: l.proprietaire?.name,
+    nombrePhotos: l.nombre_photos ?? photos.length,
+    equipements: equipements.map((e) => e.id),
+    equipementsDetail: equipements.map((e) => ({ id: e.id, nom: e.libelle })),
+    proprietaireId: l.proprietaire?.id ?? l.proprietaire_id ?? null,
+    proprietaireNom: l.proprietaire?.name ?? null,
+    proprietaireEmail: l.proprietaire?.email ?? null,
     dateAjout: l.created_at,
   }
 }
 
+/** Corps commun aux création/modification d'annonce. */
+function toLogementBody(payload) {
+  const body = {}
+  if (payload.titre !== undefined) body.titre = payload.titre
+  if (payload.description !== undefined) body.description = payload.description || null
+  if (payload.adresse !== undefined) body.adresse = payload.adresse || null
+  if (payload.surface !== undefined && payload.surface !== '') body.superficie = Number(payload.surface)
+  if (payload.pieces !== undefined && payload.pieces !== '') body.nombre_pieces = Number(payload.pieces)
+  if (payload.prix !== undefined && payload.prix !== '') body.loyer = Number(payload.prix)
+  if (payload.caution !== undefined) body.caution = payload.caution === '' ? null : Number(payload.caution)
+  if (payload.quartierId) body.quartier_id = Number(payload.quartierId)
+  if (payload.typeLogementId) body.type_logement_id = Number(payload.typeLogementId)
+  if (payload.statut) body.statut = String(payload.statut).toLowerCase()
+  if (Array.isArray(payload.equipements)) body.equipements = payload.equipements.map(Number)
+  return body
+}
+
 export const propertyService = {
+  /**
+   * Recherche publique. Les filtres sont appliqués par l'API : la pagination
+   * porte donc bien sur l'ensemble des résultats.
+   * filters : { q, quartierId, typeLogementId, prixMax, prixMin, piecesMin, equipements[], page, perPage }
+   */
   async search(filters = {}) {
-    if (USE_MOCK) {
-      let results = [...mockProperties]
-      if (filters.q) {
-        const q = filters.q.toLowerCase()
-        results = results.filter((p) => p.titre.toLowerCase().includes(q) || p.quartier.toLowerCase().includes(q))
-      }
-      if (filters.quartier) results = results.filter((p) => p.quartier === filters.quartier)
-      if (filters.type) results = results.filter((p) => p.type === filters.type)
-      if (filters.prixMax) results = results.filter((p) => p.prix <= Number(filters.prixMax))
-      if (filters.piecesMin) results = results.filter((p) => p.pieces >= Number(filters.piecesMin))
-      if (filters.equipements?.length) {
-        results = results.filter((p) => filters.equipements.every((e) => p.equipements.includes(e)))
-      }
-      if (filters.statut) results = results.filter((p) => p.statut === filters.statut)
-      if (filters.proprietaireId) results = results.filter((p) => p.proprietaireId === filters.proprietaireId)
-
-      // Pas de pagination pour les annonces du propriétaire
-      if (filters.proprietaireId) {
-        return mockResolve({ items: results, meta: null })
-      }
-
-      const perPage = 15
-      const page = Number(filters.page) || 1
-      const total = results.length
-      const lastPage = Math.max(1, Math.ceil(total / perPage))
-      const items = results.slice((page - 1) * perPage, page * perPage)
-      return mockResolve({
-        items,
-        meta: { current_page: page, last_page: lastPage, total, per_page: perPage },
-      })
-    }
-
     const params = {}
+    if (filters.q) params.q = filters.q
+    if (filters.quartierId) params.quartier_id = filters.quartierId
+    if (filters.typeLogementId) params.type_logement_id = filters.typeLogementId
+    if (filters.prixMin) params.loyer_min = filters.prixMin
     if (filters.prixMax) params.loyer_max = filters.prixMax
-    if (filters.piecesMin) params.nombre_pieces = filters.piecesMin
-    const refs = await resolveRefs(filters)
-    if (refs.quartier_id) params.quartier_id = refs.quartier_id
-    if (refs.type_logement_id) params.type_logement_id = refs.type_logement_id
+    if (filters.piecesMin) params.pieces_min = filters.piecesMin
+    if (filters.equipements?.length) params.equipements = filters.equipements
+    if (filters.perPage) params.per_page = filters.perPage
+    params.page = Number(filters.page) || 1
 
-    let response
-    if (filters.proprietaireId) {
-      response = await api.get('/logements/mes-annonces')
-    } else {
-      params.page = Number(filters.page) || 1
-      response = await api.get('/logements', { params })
+    const response = await api.get('/logements', { params })
+    return {
+      items: (response.data || []).map(mapLogement),
+      meta: response.meta || null,
     }
+  },
 
-    let list = (Array.isArray(response.data) ? response.data : response.data?.data || []).map(mapLogement)
+  /** Annonces du propriétaire connecté, tous statuts de modération confondus. */
+  async listMesAnnonces(filters = {}) {
+    const params = { per_page: filters.perPage || 50 }
+    if (filters.page) params.page = filters.page
+    if (filters.statut) params.statut = String(filters.statut).toLowerCase()
+    if (filters.statutModeration) params.statut_moderation = String(filters.statutModeration).toLowerCase()
 
-    if (filters.q) {
-      const q = filters.q.toLowerCase()
-      list = list.filter(
-        (p) =>
-          (p.titre || '').toLowerCase().includes(q) ||
-          (p.quartier || '').toLowerCase().includes(q) ||
-          (p.type || '').toLowerCase().includes(q)
-      )
+    const response = await api.get('/logements/mes-annonces', { params })
+    return {
+      items: (response.data || []).map(mapLogement),
+      meta: response.meta || null,
     }
-    if (filters.equipements?.length) {
-      list = list.filter((p) => filters.equipements.every((e) => p.equipements.includes(e)))
-    }
-    if (filters.statut) {
-      list = list.filter((p) => p.statut === filters.statut)
-    }
-
-    // Annonces du propriétaire : pas de pagination
-    if (filters.proprietaireId) {
-      return { items: list, meta: null }
-    }
-
-    // Pagination Laravel exposée par l'intercepteur axios (response.meta)
-    return { items: list, meta: response.meta || null }
   },
 
   async getById(id) {
-    if (USE_MOCK) return mockResolve(mockProperties.find((p) => p.id === id) || null)
     const { data } = await api.get(`/logements/${id}`)
     return mapLogement(data)
   },
 
   async create(payload) {
-    if (USE_MOCK) return mockResolve({ ...payload, id: `log-${Date.now()}`, statut: 'DISPONIBLE' })
-    const body = {
-      titre: payload.titre,
-      description: payload.description,
-      adresse: payload.adresse,
-      superficie: payload.surface,
-      nombre_pieces: payload.pieces,
-      loyer: payload.prix,
-      caution: payload.caution,
-      ...(await resolveRefs(payload)),
-      equipements: await resolveEquipementIds(payload.equipements),
-    }
-    const { data } = await api.post('/logements', body)
+    const { data } = await api.post('/logements', toLogementBody(payload))
     return mapLogement(data)
   },
 
   async update(id, payload) {
-    if (USE_MOCK) return mockResolve({ ...payload, id })
-    const body = {
-      titre: payload.titre,
-      description: payload.description,
-      adresse: payload.adresse,
-      superficie: payload.surface,
-      nombre_pieces: payload.pieces,
-      loyer: payload.prix,
-      caution: payload.caution,
-      ...(await resolveRefs(payload)),
-    }
-    if (payload.equipements) body.equipements = await resolveEquipementIds(payload.equipements)
-    const { data } = await api.put(`/logements/${id}`, body)
+    const { data } = await api.put(`/logements/${id}`, toLogementBody(payload))
+    return mapLogement(data)
+  },
+
+  /** Change uniquement la disponibilité de l'annonce. */
+  async updateStatut(id, statut) {
+    const { data } = await api.put(`/logements/${id}`, { statut: String(statut).toLowerCase() })
     return mapLogement(data)
   },
 
   async remove(id) {
-    if (USE_MOCK) return mockResolve({ success: true })
     await api.delete(`/logements/${id}`)
   },
 
-  async uploadPhotos(id, files) {
-    if (USE_MOCK) return mockResolve({ success: true })
-    const form = new FormData()
-    Array.from(files).forEach((f) => form.append('photo', f))
-    const { data } = await api.post(`/logements/${id}/photos`, form, {
-      headers: { 'Content-Type': 'multipart/form-data' },
+  // --- Photos ---
+
+  /**
+   * L'API accepte une photo par requête : on les envoie donc une à une.
+   * `premierePrincipale` marque la première photo envoyée comme principale
+   * (utile quand le logement n'en a encore aucune).
+   */
+  async uploadPhotos(logementId, files, { premierePrincipale = false } = {}) {
+    const photos = []
+
+    for (const [index, file] of Array.from(files).entries()) {
+      const form = new FormData()
+      form.append('photo', file)
+      if (premierePrincipale && index === 0) form.append('est_principale', '1')
+
+      const { data } = await api.post(`/logements/${logementId}/photos`, form)
+      photos.push(mapPhoto(data))
+    }
+
+    return photos
+  },
+
+  async deletePhoto(logementId, photoId) {
+    await api.delete(`/logements/${logementId}/photos/${photoId}`)
+  },
+
+  async setPhotoPrincipale(logementId, photoId) {
+    const { data } = await api.patch(`/logements/${logementId}/photos/${photoId}/principale`)
+    return mapPhoto(data)
+  },
+
+  async syncEquipements(logementId, equipementIds) {
+    const { data } = await api.put(`/logements/${logementId}/equipements`, {
+      equipements: equipementIds.map(Number),
     })
-    return data
+    return (data || []).map((e) => ({ id: e.id, nom: e.libelle }))
   },
 
-  async setPhotoPrincipale(id, photoId) {
-    if (USE_MOCK) return mockResolve({ success: true })
-    const { data } = await api.patch(`/logements/${id}/photos/${photoId}/principale`)
-    return data
-  },
-
-  async listQuartiers() {
-    if (USE_MOCK) return mockResolve(QUARTIERS)
-    return ensureQuartiers()
-  },
-
-  async listTypes() {
-    if (USE_MOCK) return mockResolve(MOCK_TYPES.map(l => ({ id: l, libelle: l })))
-    return ensureTypes()
-  },
-
-  async listEquipements() {
-    if (USE_MOCK) return mockResolve(EQUIPEMENTS)
-    return ensureEquipements()
-  },
+  // --- Référentiels ---
+  listQuartiers: ensureQuartiers,
+  listTypes: ensureTypes,
+  listEquipements: ensureEquipements,
 }

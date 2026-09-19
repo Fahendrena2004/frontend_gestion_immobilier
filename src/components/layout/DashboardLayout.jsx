@@ -1,8 +1,8 @@
-import { Outlet } from 'react-router-dom'
+import { Outlet, useNavigate } from 'react-router-dom'
 import {
-  LayoutDashboard, FileText, CalendarCheck, Home as HomeIcon, KeyRound,
+  LayoutDashboard, FileText, CalendarCheck, KeyRound,
   Users, ShieldCheck, BarChart3, Wallet, Building2, ClipboardList,
-  LogOut, User
+  LogOut, User,
 } from 'lucide-react'
 import Sidebar from './Sidebar'
 import MobileTabBar from './MobileTabBar'
@@ -43,9 +43,22 @@ const ROLE_LABEL = {
   ADMINISTRATEUR: 'Espace administrateur',
 }
 
+// Le segment d'URL ne correspond pas toujours au rôle (ADMINISTRATEUR -> /admin).
+const PROFIL_PATH = {
+  LOCATAIRE: '/locataire/profil',
+  PROPRIETAIRE: '/proprietaire/profil',
+  ADMINISTRATEUR: '/admin/profil',
+}
+
 export default function DashboardLayout() {
   const { user, role, logout } = useAuth()
+  const navigate = useNavigate()
   const items = NAV_BY_ROLE[role] || []
+
+  async function handleLogout() {
+    await logout()
+    navigate('/connexion', { replace: true })
+  }
 
   return (
     <div className="flex min-h-screen bg-ink-50">
@@ -65,21 +78,22 @@ export default function DashboardLayout() {
               variant="ghost"
               size="icon"
               className="lg:hidden"
-              onClick={logout}
+              onClick={handleLogout}
               aria-label="Déconnexion"
             >
               <LogOut className="h-5 w-5 text-ink-600 hover:text-brick-600" />
             </Button>
             {/* Dropdown menu for desktop */}
-            <DropdownMenu
-              trigger={<Avatar name={user?.nom} size="sm" />}
-              className="hidden lg:block"
-              items={[
-                { label: 'Mon profil', onClick: () => window.location.href = `/${role.toLowerCase()}/profil` },
-                { divider: true },
-                { label: 'Déconnexion', danger: true, onClick: logout },
-              ]}
-            />
+            <div className="hidden lg:block">
+              <DropdownMenu
+                trigger={<Avatar name={user?.nom} size="sm" />}
+                items={[
+                  { label: 'Mon profil', onClick: () => navigate(`${PROFIL_PATH[role] ?? '/'}`) },
+                  { divider: true },
+                  { label: 'Déconnexion', danger: true, onClick: handleLogout },
+                ]}
+              />
+            </div>
           </div>
         </header>
         <main className="flex-1 p-4 sm:p-6 lg:p-8 lg:pb-0 pb-20">

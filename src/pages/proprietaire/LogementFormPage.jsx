@@ -1,85 +1,238 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { ImagePlus, Save, X } from 'lucide-react'
+import { ImagePlus, Save, Star, Trash2, X } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/Card'
 import Input from '@/components/ui/Input'
 import Select from '@/components/ui/Select'
 import Textarea from '@/components/ui/Textarea'
 import Button from '@/components/ui/Button'
+import Alert from '@/components/shared/Alert'
+import LoadingState from '@/components/shared/LoadingState'
 import { propertyService } from '@/services/propertyService'
-import { useAuth } from '@/context/AuthContext'
-import { QUARTIERS } from '@/data/mockData'
 
-const TYPES = ['Villa', 'Appartement', 'Studio', 'Maison', 'Duplex', 'Chambre']
 const MAX_PHOTOS = 6
 
 const EMPTY_FORM = {
-  titre: '', quartier: QUARTIERS[0], type: TYPES[0], prix: '', pieces: 1,
-  surface: '', description: '', equipements: [], photos: [],
+  titre: '',
+  quartierId: '',
+  typeLogementId: '',
+  prix: '',
+  pieces: 1,
+  surface: '',
+  caution: '',
+  adresse: '',
+  description: '',
+  equipements: [],
 }
 
 export default function LogementFormPage() {
   const { id } = useParams()
   const isEdit = !!id
   const navigate = useNavigate()
-  const { user } = useAuth()
-  const [form, setForm] = useState(EMPTY_FORM)
-  const [equipements, setEquipements] = useState([])
-  const [saving, setSaving] = useState(false)
-  const [photoPreviews, setPhotoPreviews] = useState([])
-  const [photoError, setPhotoError] = useState(null)
 
+  const [form, setForm] = useState(EMPTY_FORM)
+  const [referentiels, setReferentiels] = useState({ quartiers: [], types: [], equipements: [] })
+  const [chargement, setChargement] = useState(true)
+  const [erreurChargement, setErreurChargement] = useState(null)
+
+  const [enregistrement, setEnregistrement] = useState(false)
+  const [erreur, setErreur] = useState(null)
+  const [fieldErrors, setFieldErrors] = useState({})
+
+  // Photos déjà enregistrées (mode édition) et nouveaux fichiers à envoyer.
+  const [photosExistantes, setPhotosExistantes] = useState([])
+  const [nouvellesPhotos, setNouvellesPhotos] = useState([]) // [{ file, preview }]
+  const [photoErreur, setPhotoErreur] = useState(null)
+  const [photoAction, setPhotoAction] = useState(null)
+
+  // Chargement des référentiels et, en édition, du logement à modifier.
   useEffect(() => {
-    propertyService.listEquipements().then(setEquipements)
-    if (isEdit) {
-      propertyService.getById(id).then((data) => data && setForm({ ...EMPTY_FORM, ...data }))
+    let annule = false
+
+    async function charger() {
+      setChargement(true)
+      try {
+        const [quartiers, types, equipements] = await Promise.all([
+          propertyService.listQuartiers(),
+          propertyService.listTypes(),
+          propertyService.listEquipements(),
+        ])
+        if (annule) return
+        setReferentiels({ quartiers, types, equipements })
+
+        if (isEdit) {
+          const logement = await propertyService.getById(id)
+          if (annule) return
+          setForm({
+            titre: logement.titre ?? '',
+            quartierId: logement.quartierId ?? '',
+            typeLogementId: logement.typeLogementId ?? '',
+            prix: logement.prix ?? '',
+            pieces: logement.pieces ?? 1,
+            surface: logement.surface ?? '',
+            caution: logement.caution ?? '',
+            adresse: logement.adresse ?? '',
+            description: logement.description ?? '',
+            equipements: logement.equipements ?? [],
+          })
+          setPhotosExistantes(logement.photos ?? [])
+        } else {
+          // Valeurs par défaut prises dans les référentiels réels.
+          setForm((f) => ({
+            ...f,
+            quartierId: quartiers[0]?.id ?? '',
+            typeLogementId: types[0]?.id ?? '',
+          }))
+        }
+        setErreurChargement(null)
+      } catch (err) {
+        if (!annule) setErreurChargement(err.message)
+      } finally {
+        if (!annule) setChargement(false)
+      }
     }
+
+    charger()
+    return () => { annule = true }
   }, [id, isEdit])
 
-  function toggleEquipement(eqId) {
+  // Libère les aperçus (URL.createObjectURL) au démontage.
+  useEffect(
+    () => () => nouvellesPhotos.forEach((p) => URL.revokeObjectURL(p.preview)),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    []
+  )
+
+  function setChamp(champ, valeur) {
+    setForm((f) => ({ ...f, [champ]: valeur }))
+    setFieldErrors((e) => (e[champ] ? { ...e, [champ]: null } : e))
+  }
+
+  function toggleEquipement(equipementId) {
     setForm((f) => ({
       ...f,
-      equipements: f.equipements.includes(eqId) ? f.equipements.filter((e) => e !== eqId) : [...f.equipements, eqId],
+      equipements: f.equipements.includes(equipementId)
+        ? f.equipements.filter((e) => e !== equipementId)
+        : [...f.equipements, equipementId],
     }))
   }
 
+  const totalPhotos = photosExistantes.length + nouvellesPhotos.length
+
   function handlePhotosChange(e) {
-    const files = Array.from(e.target.files)
-    if (files.length === 0) return
+    const fichiers = Array.from(e.target.files)
+    e.target.value = '' // permet de re-sélectionner le même fichier
+    if (fichiers.length === 0) return
 
-    const currentCount = photoPreviews.length
-    const remainingSlots = MAX_PHOTOS - currentCount
-
-    if (files.length > remainingSlots) {
-      setPhotoError(`Vous pouvez ajouter jusqu'à ${MAX_PHOTOS} photos maximum. Il vous reste ${remainingSlots} place${remainingSlots > 1 ? 's' : ''}.`)
+    const placesRestantes = MAX_PHOTOS - totalPhotos
+    if (placesRestantes <= 0) {
+      setPhotoErreur(`Vous avez atteint la limite de ${MAX_PHOTOS} photos.`)
       return
     }
 
-    const newPreviews = files.slice(0, remainingSlots).map((file) => {
-      if (!file.type.startsWith('image/')) return null
-      return URL.createObjectURL(file)
-    }).filter(Boolean)
+    const images = fichiers.filter((f) => f.type.startsWith('image/'))
+    const tropVolumineux = images.filter((f) => f.size > 5 * 1024 * 1024)
 
-    setPhotoPreviews((prev) => [...prev, ...newPreviews])
-    setPhotoError(null)
+    if (images.length !== fichiers.length) {
+      setPhotoErreur('Seules les images (JPG, PNG) sont acceptées.')
+      return
+    }
+    if (tropVolumineux.length > 0) {
+      setPhotoErreur('Chaque photo doit faire moins de 5 Mo.')
+      return
+    }
+    if (images.length > placesRestantes) {
+      setPhotoErreur(
+        `Vous pouvez encore ajouter ${placesRestantes} photo${placesRestantes > 1 ? 's' : ''}.`
+      )
+      return
+    }
+
+    setNouvellesPhotos((prev) => [
+      ...prev,
+      ...images.map((file) => ({ file, preview: URL.createObjectURL(file) })),
+    ])
+    setPhotoErreur(null)
   }
 
-  function removePhoto(index) {
-    setPhotoPreviews((prev) => {
-      const url = prev[index]
-      URL.revokeObjectURL(url)
+  function retirerNouvellePhoto(index) {
+    setNouvellesPhotos((prev) => {
+      URL.revokeObjectURL(prev[index].preview)
       return prev.filter((_, i) => i !== index)
     })
+    setPhotoErreur(null)
+  }
+
+  async function supprimerPhotoExistante(photoId) {
+    setPhotoAction(photoId)
+    setPhotoErreur(null)
+    try {
+      await propertyService.deletePhoto(id, photoId)
+      setPhotosExistantes((prev) => prev.filter((p) => p.id !== photoId))
+    } catch (err) {
+      setPhotoErreur(err.message)
+    } finally {
+      setPhotoAction(null)
+    }
+  }
+
+  async function definirPhotoPrincipale(photoId) {
+    setPhotoAction(photoId)
+    setPhotoErreur(null)
+    try {
+      await propertyService.setPhotoPrincipale(id, photoId)
+      setPhotosExistantes((prev) => prev.map((p) => ({ ...p, estPrincipale: p.id === photoId })))
+    } catch (err) {
+      setPhotoErreur(err.message)
+    } finally {
+      setPhotoAction(null)
+    }
   }
 
   async function handleSubmit(e) {
     e.preventDefault()
-    setSaving(true)
-    const payload = { ...form, proprietaireId: user?.id, proprietaireNom: user?.nom, photos: photoPreviews }
-    if (isEdit) await propertyService.update(id, payload)
-    else await propertyService.create(payload)
-    setSaving(false)
-    navigate('/proprietaire/logements')
+    setEnregistrement(true)
+    setErreur(null)
+    setFieldErrors({})
+
+    try {
+      const logement = isEdit
+        ? await propertyService.update(id, form)
+        : await propertyService.create(form)
+
+      // Les photos partent après la création : l'API les rattache à un logement
+      // existant. La première photo d'une annonce qui n'en a pas devient la
+      // photo principale.
+      if (nouvellesPhotos.length > 0) {
+        await propertyService.uploadPhotos(
+          logement.id,
+          nouvellesPhotos.map((p) => p.file),
+          { premierePrincipale: photosExistantes.length === 0 }
+        )
+      }
+
+      navigate('/proprietaire/logements')
+    } catch (err) {
+      setErreur(err.message)
+      if (err.errors) {
+        setFieldErrors(
+          Object.fromEntries(Object.entries(err.errors).map(([champ, msgs]) => [champ, msgs[0]]))
+        )
+      }
+      setEnregistrement(false)
+    }
+  }
+
+  if (chargement) return <LoadingState label="Chargement du formulaire…" />
+
+  if (erreurChargement) {
+    return (
+      <Alert title="Impossible de charger le formulaire" message={erreurChargement}>
+        <Button variant="outline" size="sm" className="mt-2" onClick={() => window.location.reload()}>
+          Réessayer
+        </Button>
+      </Alert>
+    )
   }
 
   return (
@@ -87,119 +240,133 @@ export default function LogementFormPage() {
       <h1 className="font-display text-2xl font-bold text-ink-900">
         {isEdit ? 'Modifier le logement' : 'Ajouter un logement'}
       </h1>
-      <p className="mt-1 text-sm text-ink-500">Renseignez les informations de votre annonce. Les champs marqués d'un <span className="text-brick-500">*</span> sont obligatoires.</p>
+      <p className="mt-1 text-sm text-ink-500">
+        Renseignez les informations de votre annonce. Les champs marqués d'une{' '}
+        <span className="text-brick-500">*</span> sont obligatoires.
+        {!isEdit && ' Votre annonce sera publiée après validation par un administrateur.'}
+      </p>
 
       <form onSubmit={handleSubmit} className="mt-6 flex flex-col gap-6">
-        {/* INFORMATIONS GÉNÉRALES */}
+        {erreur && <Alert title="L'annonce n'a pas pu être enregistrée" message={erreur} />}
+
         <Card>
           <CardHeader>
             <CardTitle>Informations générales</CardTitle>
-            <CardDescription className="text-sm text-ink-500">
-              Renseignez les caractéristiques principales du logement. Tous les champs marqués <span className="text-brick-500">*</span> sont obligatoires.
-            </CardDescription>
+            <CardDescription>Les caractéristiques principales du logement.</CardDescription>
           </CardHeader>
           <CardContent className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="sm:col-span-2">
               <Input
-                label="Titre de l'annonce <span className='text-brick-500'>*</span>"
+                label="Titre de l'annonce *"
                 required
                 value={form.titre}
-                onChange={(e) => setForm({ ...form, titre: e.target.value })}
+                error={fieldErrors.titre}
+                onChange={(e) => setChamp('titre', e.target.value)}
                 placeholder="ex : Villa 3 chambres avec jardin"
               />
             </div>
+
             <Select
-              label={
-                <>
-                  Quartier <span className="text-brick-500">*</span>
-                </>
-              }
-              value={form.quartier}
-              onChange={(e) => setForm({ ...form, quartier: e.target.value })}
+              label="Quartier *"
+              required
+              value={form.quartierId}
+              error={fieldErrors.quartier_id}
+              onChange={(e) => setChamp('quartierId', e.target.value)}
             >
-              {QUARTIERS.map((q) => (
-                <option key={q} value={q}>
-                  {q}
-                </option>
+              <option value="">Sélectionner un quartier</option>
+              {referentiels.quartiers.map((q) => (
+                <option key={q.id} value={q.id}>{q.nom}</option>
               ))}
             </Select>
+
             <Select
-              label="Type de logement <span className='text-brick-500'>*</span>"
-              value={form.type}
-              onChange={(e) => setForm({ ...form, type: e.target.value })}
+              label="Type de logement *"
+              required
+              value={form.typeLogementId}
+              error={fieldErrors.type_logement_id}
+              onChange={(e) => setChamp('typeLogementId', e.target.value)}
             >
-              {TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
+              <option value="">Sélectionner un type</option>
+              {referentiels.types.map((t) => (
+                <option key={t.id} value={t.id}>{t.libelle}</option>
+              ))}
             </Select>
+
             <Input
-              label="Prix mensuel (Ar) <span className='text-brick-500'>*</span>"
+              label="Loyer mensuel (Ar) *"
               type="number"
+              min="1"
               required
               value={form.prix}
-              onChange={(e) => setForm({ ...form, prix: e.target.value })}
+              error={fieldErrors.loyer}
+              onChange={(e) => setChamp('prix', e.target.value)}
               placeholder="ex : 700000"
             />
+
             <Input
-              label="Nombre de pièces <span className='text-brick-500'>*</span>"
+              label="Caution (Ar)"
+              type="number"
+              min="0"
+              value={form.caution}
+              error={fieldErrors.caution}
+              onChange={(e) => setChamp('caution', e.target.value)}
+              placeholder="ex : 700000"
+            />
+
+            <Input
+              label="Nombre de pièces"
               type="number"
               min={1}
-              required
               value={form.pieces}
-              onChange={(e) => setForm({ ...form, pieces: e.target.value })}
+              error={fieldErrors.nombre_pieces}
+              onChange={(e) => setChamp('pieces', e.target.value)}
               placeholder="ex : 3"
             />
+
             <Input
-              label="Surface (m²) <span className='text-brick-500'>*</span>"
+              label="Surface (m²)"
               type="number"
-              required
+              min="1"
               value={form.surface}
-              onChange={(e) => setForm({ ...form, surface: e.target.value })}
+              error={fieldErrors.superficie}
+              onChange={(e) => setChamp('surface', e.target.value)}
               placeholder="ex : 80"
             />
+
             <div className="sm:col-span-2">
               <Input
-                label="Adresse <span className='text-brick-500'>*</span>"
-                required
+                label="Adresse"
                 value={form.adresse}
-                onChange={(e) => setForm({ ...form, adresse: e.target.value })}
+                error={fieldErrors.adresse}
+                onChange={(e) => setChamp('adresse', e.target.value)}
                 placeholder="ex : Rue de l'Indépendance, près du marché"
               />
             </div>
+
             <div className="sm:col-span-2">
               <Textarea
-                label="Description <span className='text-brick-500'>*</span>"
-                required
+                label="Description"
                 rows={5}
                 value={form.description}
-                onChange={(e) => setForm({ ...form, description: e.target.value })}
+                error={fieldErrors.description}
+                onChange={(e) => setChamp('description', e.target.value)}
                 placeholder="ex : Belle villa familiale au calme, à deux pas du centre-ville, avec jardin clos et parking privé."
               />
-              <p className="mt-1 text-xs text-ink-500">Décrivez le logement, son environnement, son accès aux transports, ses atouts.</p>
-            </div>
-            <div className="sm:col-span-2">
-              <label className="block text-sm font-medium text-ink-700 mb-1.5">
-                Caution (Ar)
-              </label>
-              <Input
-                type="number"
-                value={form.caution}
-                onChange={(e) => setForm({ ...form, caution: e.target.value })}
-                placeholder="ex : 700000"
-              />
+              <p className="mt-1 text-xs text-ink-500">
+                Décrivez le logement, son environnement, son accès et ses atouts.
+              </p>
             </div>
           </CardContent>
         </Card>
 
-        {/* ÉQUIPEMENTS */}
         <Card>
           <CardHeader>
             <CardTitle>Équipements</CardTitle>
-            <CardDescription className="text-sm text-ink-500">
-              Sélectionnez les équipements disponibles dans le logement. Cochez toutes les cases qui s'appliquent.
-            </CardDescription>
+            <CardDescription>Cochez tout ce que propose le logement.</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-              {equipements.map((eq) => (
+              {referentiels.equipements.map((eq) => (
                 <label key={eq.id} className="flex items-center gap-2 text-sm text-ink-700">
                   <input
                     type="checkbox"
@@ -214,68 +381,122 @@ export default function LogementFormPage() {
           </CardContent>
         </Card>
 
-        {/* PHOTOS */}
         <Card>
           <CardHeader>
             <CardTitle>Photos</CardTitle>
-            <CardDescription className="text-sm text-ink-500">
-              Ajoutez jusqu'à {MAX_PHOTOS} photos (JPG ou PNG, 5 Mo max chacune). La première sera votre photo principale.
+            <CardDescription>
+              Jusqu'à {MAX_PHOTOS} photos (JPG ou PNG, 5 Mo maximum chacune).
             </CardDescription>
           </CardHeader>
           <CardContent>
-            {photoError && (
-              <div className="mb-4 p-3 rounded-lg bg-brick-50 border border-brick-200 flex items-start gap-2 text-sm text-brick-600" role="alert">
-                <X className="h-4 w-4 flex-shrink-0 mt-0.5" />
-                <span>{photoError}</span>
+            {photoErreur && <Alert message={photoErreur} className="mb-4" />}
+
+            {photosExistantes.length > 0 && (
+              <div className="mb-4">
+                <p className="mb-2 text-sm font-medium text-ink-700">Photos publiées</p>
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+                  {photosExistantes.map((photo) => (
+                    <div
+                      key={photo.id}
+                      className="group relative aspect-square overflow-hidden rounded-lg border border-ink-200"
+                    >
+                      <img src={photo.url} alt="" className="h-full w-full object-cover" />
+
+                      <div className="absolute right-1 top-1 flex gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+                        {!photo.estPrincipale && (
+                          <button
+                            type="button"
+                            disabled={photoAction === photo.id}
+                            onClick={() => definirPhotoPrincipale(photo.id)}
+                            aria-label="Définir comme photo principale"
+                            className="rounded-full bg-black/60 p-1 text-white hover:bg-gold-600"
+                          >
+                            <Star className="h-4 w-4" />
+                          </button>
+                        )}
+                        <button
+                          type="button"
+                          disabled={photoAction === photo.id}
+                          onClick={() => supprimerPhotoExistante(photo.id)}
+                          aria-label="Supprimer cette photo"
+                          className="rounded-full bg-black/60 p-1 text-white hover:bg-brick-600"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
+
+                      {photo.estPrincipale && (
+                        <span className="absolute bottom-1 left-1 rounded bg-brand-600 px-1.5 py-0.5 text-xs text-white">
+                          Principale
+                        </span>
+                      )}
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
-            <label className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-ink-200 py-10 text-center hover:border-brand-300 transition-colors"
-              style={{ opacity: photoPreviews.length >= MAX_PHOTOS ? 0.5 : 1 }}
+
+            <label
+              className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-ink-200 py-10 text-center transition-colors hover:border-brand-300"
+              style={{ opacity: totalPhotos >= MAX_PHOTOS ? 0.5 : 1 }}
             >
               <ImagePlus className="h-6 w-6 text-ink-400" />
               <span className="text-sm font-medium text-ink-600">
-                {photoPreviews.length === 0 ? 'Cliquez pour ajouter des photos' : `${photoPreviews.length} / ${MAX_PHOTOS} photos ajoutées`}
+                {totalPhotos === 0
+                  ? 'Cliquez pour ajouter des photos'
+                  : `${totalPhotos} / ${MAX_PHOTOS} photos`}
               </span>
-              <span className="text-xs text-ink-400">JPG, PNG — 5 Mo max par fichier</span>
+              <span className="text-xs text-ink-400">JPG, PNG — 5 Mo maximum par fichier</span>
               <input
                 type="file"
                 multiple
                 accept="image/*"
                 className="hidden"
                 onChange={handlePhotosChange}
-                disabled={photoPreviews.length >= MAX_PHOTOS}
+                disabled={totalPhotos >= MAX_PHOTOS}
               />
             </label>
 
-            {photoPreviews.length > 0 && (
-              <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-                {photoPreviews.map((preview, index) => (
-                  <div key={index} className="relative group aspect-square rounded-lg overflow-hidden border border-ink-200">
-                    <img src={preview} alt={`Photo ${index + 1}`} className="w-full h-full object-cover" />
-                    <button
-                      type="button"
-                      onClick={() => removePhoto(index)}
-                      className="absolute top-1 right-1 p-1 rounded-full bg-black/50 text-white opacity-0 group-hover:opacity-100 transition-opacity hover:bg-brick-600"
-                      aria-label="Supprimer cette photo"
+            {nouvellesPhotos.length > 0 && (
+              <div className="mt-4">
+                <p className="mb-2 text-sm font-medium text-ink-700">
+                  À envoyer ({nouvellesPhotos.length})
+                </p>
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+                  {nouvellesPhotos.map((photo, index) => (
+                    <div
+                      key={photo.preview}
+                      className="group relative aspect-square overflow-hidden rounded-lg border border-dashed border-brand-300"
                     >
-                      <X className="h-4 w-4" />
-                    </button>
-                    {index === 0 && (
-                      <span className="absolute bottom-1 left-1 bg-brand-600 text-white text-xs px-1.5 py-0.5 rounded">Principale</span>
-                    )}
-                  </div>
-                ))}
+                      <img src={photo.preview} alt="" className="h-full w-full object-cover" />
+                      <button
+                        type="button"
+                        onClick={() => retirerNouvellePhoto(index)}
+                        aria-label="Retirer cette photo"
+                        className="absolute right-1 top-1 rounded-full bg-black/50 p-1 text-white opacity-0 transition-opacity hover:bg-brick-600 group-hover:opacity-100"
+                      >
+                        <X className="h-4 w-4" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
           </CardContent>
         </Card>
 
         <div className="flex justify-end gap-3">
-          <Button type="button" variant="outline" onClick={() => navigate('/proprietaire/logements')}>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => navigate('/proprietaire/logements')}
+            disabled={enregistrement}
+          >
             Annuler
           </Button>
-          <Button type="submit" disabled={saving}>
-            <Save className="h-4 w-4" /> {saving ? 'Enregistrement…' : "Enregistrer l'annonce"}
+          <Button type="submit" disabled={enregistrement}>
+            <Save className="h-4 w-4" />
+            {enregistrement ? 'Enregistrement…' : "Enregistrer l'annonce"}
           </Button>
         </div>
       </form>

@@ -97,7 +97,7 @@ export default function PublicNavbar() {
           <div className="hidden items-center gap-3 lg:flex">
             {isAuthenticated ? (
               <>
-                {(role === 'PROPRIETAIRE' || role === 'ADMINISTRATEUR') && (
+                {role === 'PROPRIETAIRE' && (
                   <Link to="/proprietaire/logements/nouveau">
                     <Button variant="primary" size="sm">
                       <Building2 className="h-4 w-4" /> Publier
@@ -199,7 +199,7 @@ export default function PublicNavbar() {
                       <p className="text-xs text-ink-500">{user?.email}</p>
                     </div>
                   </div>
-                  {(role === 'PROPRIETAIRE' || role === 'ADMINISTRATEUR') && (
+                  {role === 'PROPRIETAIRE' && (
                     <Link to="/proprietaire/logements/nouveau" onClick={() => setMobileOpen(false)}>
                       <Button className="w-full" size="md">
                         <Building2 className="h-4 w-4" /> Publier un logement

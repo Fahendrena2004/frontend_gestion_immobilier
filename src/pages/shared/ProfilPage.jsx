@@ -1,31 +1,35 @@
-import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
-import { User, Lock, Mail, Phone, Save, Eye, EyeOff, AlertCircle, CheckCircle } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { Eye, EyeOff, Lock, User } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card'
 import Input from '@/components/ui/Input'
 import Button from '@/components/ui/Button'
+import Alert from '@/components/shared/Alert'
 import { authService } from '@/services/authService'
 import { useAuth } from '@/context/AuthContext'
 import { formatDate } from '@/lib/utils'
 
+const ROLE_LABEL = {
+  LOCATAIRE: 'Locataire',
+  PROPRIETAIRE: 'Propriétaire',
+  ADMINISTRATEUR: 'Administrateur',
+}
+
 export default function ProfilPage() {
-  const { user, role } = useAuth()
-  const navigate = useNavigate()
+  const { user, role, updateUser } = useAuth()
+
   const [activeTab, setActiveTab] = useState('profil')
-  const [form, setForm] = useState({
-    name: user?.name || '',
-    email: user?.email || '',
-    telephone: user?.telephone || '',
-    cin: user?.cin || '',
-    profession: user?.profession || '',
-    adresse: user?.adresse || '',
-  })
+
+  const [form, setForm] = useState({ nom: '', telephone: '', cin: '', profession: '', adresse: '' })
+  const [saving, setSaving] = useState(false)
+  const [profilError, setProfilError] = useState(null)
+  const [profilFieldErrors, setProfilFieldErrors] = useState({})
+  const [profilSuccess, setProfilSuccess] = useState(false)
+
   const [passwordForm, setPasswordForm] = useState({
     currentPassword: '',
     newPassword: '',
     newPasswordConfirmation: '',
   })
-  const [saving, setSaving] = useState(false)
   const [pwdSaving, setPwdSaving] = useState(false)
   const [pwdError, setPwdError] = useState(null)
   const [pwdSuccess, setPwdSuccess] = useState(false)
@@ -33,14 +37,52 @@ export default function ProfilPage() {
   const [showNewPwd, setShowNewPwd] = useState(false)
   const [showConfirmPwd, setShowConfirmPwd] = useState(false)
 
+  // Le profil est rechargé dans le contexte au démarrage de l'application :
+  // on réinitialise le formulaire dès qu'il est disponible.
+  useEffect(() => {
+    if (!user) return
+    setForm({
+      nom: user.nom ?? '',
+      telephone: user.telephone ?? '',
+      cin: user.cin ?? '',
+      profession: user.profession ?? '',
+      adresse: user.adresse ?? '',
+    })
+  }, [user])
+
+  function setChamp(champ, valeur) {
+    setForm((f) => ({ ...f, [champ]: valeur }))
+    setProfilSuccess(false)
+  }
+
   async function handleSaveProfil(e) {
     e.preventDefault()
     setSaving(true)
+    setProfilError(null)
+    setProfilFieldErrors({})
+    setProfilSuccess(false)
+
     try {
-      await authService.updateProfile(form)
-      alert('Profil mis à jour avec succès')
+      // L'API n'accepte la profession que pour un locataire et l'adresse que
+      // pour un propriétaire : on n'envoie que les champs pertinents.
+      const payload = {
+        nom: form.nom,
+        telephone: form.telephone,
+        cin: form.cin,
+      }
+      if (role === 'LOCATAIRE') payload.profession = form.profession
+      if (role === 'PROPRIETAIRE') payload.adresse = form.adresse
+
+      const profil = await authService.updateProfile(payload)
+      updateUser(profil)
+      setProfilSuccess(true)
     } catch (err) {
-      alert(err.message || 'Erreur lors de la mise à jour')
+      setProfilError(err.message)
+      if (err.errors) {
+        setProfilFieldErrors(
+          Object.fromEntries(Object.entries(err.errors).map(([champ, msgs]) => [champ, msgs[0]]))
+        )
+      }
     } finally {
       setSaving(false)
     }
@@ -50,255 +92,229 @@ export default function ProfilPage() {
     e.preventDefault()
     setPwdError(null)
     setPwdSuccess(false)
+
     if (passwordForm.newPassword !== passwordForm.newPasswordConfirmation) {
-      setPwdError('Les deux mots de passe ne correspondent pas')
+      setPwdError('Les deux mots de passe ne correspondent pas.')
       return
     }
+
     setPwdSaving(true)
     try {
-      await authService.changePassword({
-        currentPassword: passwordForm.currentPassword,
-        newPassword: passwordForm.newPassword,
-        newPasswordConfirmation: passwordForm.newPasswordConfirmation,
-      })
+      await authService.changePassword(passwordForm)
       setPwdSuccess(true)
       setPasswordForm({ currentPassword: '', newPassword: '', newPasswordConfirmation: '' })
     } catch (err) {
-      setPwdError(err.message || 'Erreur lors du changement de mot de passe')
+      setPwdError(err.message)
     } finally {
       setPwdSaving(false)
     }
   }
 
-  const roleLabel = {
-    LOCATAIRE: 'Espace locataire',
-    PROPRIETAIRE: 'Espace propriétaire',
-    ADMINISTRATEUR: 'Espace administrateur',
-  }[role] || 'Espace'
-
   return (
-    <div className="min-h-screen bg-ink-50">
-      <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6 lg:px-8">
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="font-display text-2xl lg:text-3xl font-bold text-ink-900">Mon profil</h1>
-          <p className="mt-2 text-ink-500">Gérez vos informations personnelles et votre sécurité</p>
-        </div>
-
-        {/* Tabs */}
-        <div className="mb-6 border-b border-ink-200">
-          <nav className="flex gap-8" aria-label="Sections du profil">
-            <button
-              type="button"
-              onClick={() => setActiveTab('profil')}
-              className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
-                activeTab === 'profil'
-                  ? 'border-brand-600 text-brand-700'
-                  : 'border-transparent text-ink-500 hover:text-ink-700'
-              }`}
-            >
-              <User className="h-4 w-4" /> Informations
-            </button>
-            <button
-              type="button"
-              onClick={() => setActiveTab('securite')}
-              className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
-                activeTab === 'securite'
-                  ? 'border-brand-600 text-brand-700'
-                  : 'border-transparent text-ink-500 hover:text-ink-700'
-              }`}
-            >
-              <Lock className="h-4 w-4" /> Sécurité
-            </button>
-          </nav>
-        </div>
-
-        {/* Profil Tab */}
-        {activeTab === 'profil' && (
-          <Card className="bg-white border-ink-100 shadow-sm">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <User className="h-5 w-5 text-brand-600" />
-                Informations personnelles
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <form onSubmit={handleSaveProfil} className="space-y-5">
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                  <Input
-                    label="Nom complet"
-                    value={form.name}
-                    onChange={(e) => setForm({ ...form, name: e.target.value })}
-                    required
-                  />
-                  <Input
-                    label="Email"
-                    type="email"
-                    value={form.email}
-                    onChange={(e) => setForm({ ...form, email: e.target.value })}
-                    required
-                  />
-                </div>
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                  <Input
-                    label="Téléphone"
-                    type="tel"
-                    value={form.telephone}
-                    onChange={(e) => setForm({ ...form, telephone: e.target.value })}
-                  />
-                  <Input
-                    label="CIN"
-                    value={form.cin}
-                    onChange={(e) => setForm({ ...form, cin: e.target.value })}
-                  />
-                </div>
-                {role === 'LOCATAIRE' && (
-                  <Input
-                    label="Profession"
-                    value={form.profession}
-                    onChange={(e) => setForm({ ...form, profession: e.target.value })}
-                  />
-                )}
-                {role === 'PROPRIETAIRE' && (
-                  <Input
-                    label="Adresse"
-                    value={form.adresse}
-                    onChange={(e) => setForm({ ...form, adresse: e.target.value })}
-                    multiline
-                    rows={3}
-                  />
-                )}
-                <div className="pt-4 border-t border-ink-100">
-                  <p className="text-xs text-ink-500 mb-3">Membre depuis le {formatDate(user?.created_at)}</p>
-                  <p className="text-xs text-ink-500">Rôle : {role === 'LOCATAIRE' ? 'Locataire' : role === 'PROPRIETAIRE' ? 'Propriétaire' : 'Administrateur'}</p>
-                </div>
-                <Button type="submit" size="lg" disabled={saving} className="w-full sm:w-auto">
-                  {saving ? 'Enregistrement…' : 'Enregistrer les modifications'}
-                </Button>
-              </form>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Sécurité Tab */}
-        {activeTab === 'securite' && (
-          <Card className="bg-white border-ink-100 shadow-sm">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Lock className="h-5 w-5 text-brand-600" />
-                Sécurité du compte
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <form onSubmit={handleChangePassword} className="space-y-5 max-w-md">
-                <div>
-                  <label htmlFor="currentPassword" className="block text-sm font-medium text-ink-700 mb-1.5">
-                    Mot de passe actuel
-                  </label>
-                  <div className="relative">
-                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-ink-400" aria-hidden="true" />
-                    <input
-                      id="currentPassword"
-                      type={showCurrentPwd ? 'text' : 'password'}
-                      autoComplete="current-password"
-                      required
-                      value={passwordForm.currentPassword}
-                      onChange={(e) => setPasswordForm({ ...passwordForm, currentPassword: e.target.value })}
-                      placeholder="••••••••"
-                      className="w-full pl-10 pr-12 py-3 rounded-lg border border-ink-200 bg-white text-ink-900 placeholder:text-ink-400 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-colors disabled:bg-ink-50 disabled:cursor-not-allowed"
-                      disabled={pwdSaving}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowCurrentPwd(!showCurrentPwd)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-ink-400 hover:text-ink-600 transition-colors"
-                      aria-label={showCurrentPwd ? 'Masquer' : 'Afficher'}
-                    >
-                      {showCurrentPwd ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
-                    </button>
-                  </div>
-                </div>
-
-                <div>
-                  <label htmlFor="newPassword" className="block text-sm font-medium text-ink-700 mb-1.5">
-                    Nouveau mot de passe
-                  </label>
-                  <div className="relative">
-                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-ink-400" aria-hidden="true" />
-                    <input
-                      id="newPassword"
-                      type={showNewPwd ? 'text' : 'password'}
-                      autoComplete="new-password"
-                      required
-                      minLength={8}
-                      value={passwordForm.newPassword}
-                      onChange={(e) => setPasswordForm({ ...passwordForm, newPassword: e.target.value })}
-                      placeholder="••••••••"
-                      className="w-full pl-10 pr-12 py-3 rounded-lg border border-ink-200 bg-white text-ink-900 placeholder:text-ink-400 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-colors disabled:bg-ink-50 disabled:cursor-not-allowed"
-                      disabled={pwdSaving}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowNewPwd(!showNewPwd)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-ink-400 hover:text-ink-600 transition-colors"
-                      aria-label={showNewPwd ? 'Masquer' : 'Afficher'}
-                    >
-                      {showNewPwd ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
-                    </button>
-                  </div>
-                  <p className="mt-1 text-xs text-ink-500">Minimum 8 caractères</p>
-                </div>
-
-                <div>
-                  <label htmlFor="newPasswordConfirmation" className="block text-sm font-medium text-ink-700 mb-1.5">
-                    Confirmer le nouveau mot de passe
-                  </label>
-                  <div className="relative">
-                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-ink-400" aria-hidden="true" />
-                    <input
-                      id="newPasswordConfirmation"
-                      type={showConfirmPwd ? 'text' : 'password'}
-                      autoComplete="new-password"
-                      required
-                      value={passwordForm.newPasswordConfirmation}
-                      onChange={(e) => setPasswordForm({ ...passwordForm, newPasswordConfirmation: e.target.value })}
-                      placeholder="••••••••"
-                      className="w-full pl-10 pr-12 py-3 rounded-lg border border-ink-200 bg-white text-ink-900 placeholder:text-ink-400 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-colors disabled:bg-ink-50 disabled:cursor-not-allowed"
-                      disabled={pwdSaving}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowConfirmPwd(!showConfirmPwd)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-ink-400 hover:text-ink-600 transition-colors"
-                      aria-label={showConfirmPwd ? 'Masquer' : 'Afficher'}
-                    >
-                      {showConfirmPwd ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
-                    </button>
-                  </div>
-                </div>
-
-                {pwdError && (
-                  <div className="p-3 rounded-lg bg-brick-50 border border-brick-200 flex items-start gap-2" role="alert">
-                    <AlertCircle className="h-5 w-5 text-brick-500 flex-shrink-0 mt-0.5" />
-                    <p className="text-sm text-brick-600">{pwdError}</p>
-                  </div>
-                )}
-
-                {pwdSuccess && (
-                  <div className="p-3 rounded-lg bg-emerald-50 border border-emerald-200 flex items-center gap-2" role="status">
-                    <CheckCircle className="h-5 w-5 text-emerald-500 flex-shrink-0" />
-                    <p className="text-sm text-emerald-600">Mot de passe modifié avec succès</p>
-                  </div>
-                )}
-
-                <Button type="submit" size="lg" disabled={pwdSaving} className="w-full sm:w-auto bg-gradient-to-r from-brand-600 to-brand-700 hover:from-brand-700 hover:to-brand-800 text-white shadow-lg">
-                  {pwdSaving ? 'Modification…' : 'Modifier le mot de passe'}
-                </Button>
-              </form>
-            </CardContent>
-          </Card>
-        )}
+    <div className="mx-auto max-w-3xl">
+      <div className="mb-8">
+        <h1 className="font-display text-2xl font-bold text-ink-900 lg:text-3xl">Mon profil</h1>
+        <p className="mt-2 text-ink-500">Gérez vos informations personnelles et votre sécurité.</p>
       </div>
+
+      <div className="mb-6 border-b border-ink-200">
+        <nav className="flex gap-8" aria-label="Sections du profil">
+          <Onglet
+            actif={activeTab === 'profil'}
+            icon={User}
+            label="Informations"
+            onClick={() => setActiveTab('profil')}
+          />
+          <Onglet
+            actif={activeTab === 'securite'}
+            icon={Lock}
+            label="Sécurité"
+            onClick={() => setActiveTab('securite')}
+          />
+        </nav>
+      </div>
+
+      {activeTab === 'profil' && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <User className="h-5 w-5 text-brand-600" /> Informations personnelles
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleSaveProfil} className="flex flex-col gap-5">
+              {profilError && <Alert message={profilError} />}
+              {profilSuccess && <Alert variant="success" message="Profil mis à jour avec succès." />}
+
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <Input
+                  label="Nom complet *"
+                  required
+                  value={form.nom}
+                  error={profilFieldErrors.name}
+                  onChange={(e) => setChamp('nom', e.target.value)}
+                />
+                <Input
+                  label="Adresse e-mail"
+                  type="email"
+                  value={user?.email ?? ''}
+                  disabled
+                  readOnly
+                  hint="L'adresse e-mail ne peut pas être modifiée."
+                />
+              </div>
+
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <Input
+                  label="Téléphone"
+                  type="tel"
+                  value={form.telephone}
+                  error={profilFieldErrors.telephone}
+                  onChange={(e) => setChamp('telephone', e.target.value)}
+                />
+                <Input
+                  label="N° CIN"
+                  value={form.cin}
+                  error={profilFieldErrors.cin}
+                  onChange={(e) => setChamp('cin', e.target.value)}
+                />
+              </div>
+
+              {role === 'LOCATAIRE' && (
+                <Input
+                  label="Profession"
+                  value={form.profession}
+                  error={profilFieldErrors.profession}
+                  onChange={(e) => setChamp('profession', e.target.value)}
+                />
+              )}
+
+              {role === 'PROPRIETAIRE' && (
+                <Input
+                  label="Adresse"
+                  value={form.adresse}
+                  error={profilFieldErrors.adresse}
+                  onChange={(e) => setChamp('adresse', e.target.value)}
+                />
+              )}
+
+              <div className="border-t border-ink-100 pt-4 text-xs text-ink-500">
+                <p>Membre depuis le {formatDate(user?.dateInscription)}</p>
+                <p className="mt-1">Rôle : {ROLE_LABEL[role] ?? '—'}</p>
+              </div>
+
+              <Button type="submit" size="lg" disabled={saving} className="w-full sm:w-auto">
+                {saving ? 'Enregistrement…' : 'Enregistrer les modifications'}
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
+      )}
+
+      {activeTab === 'securite' && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Lock className="h-5 w-5 text-brand-600" /> Sécurité du compte
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleChangePassword} className="flex max-w-md flex-col gap-5">
+              <ChampMotDePasse
+                id="currentPassword"
+                label="Mot de passe actuel"
+                autoComplete="current-password"
+                value={passwordForm.currentPassword}
+                visible={showCurrentPwd}
+                onToggle={() => setShowCurrentPwd((v) => !v)}
+                disabled={pwdSaving}
+                onChange={(v) => setPasswordForm((f) => ({ ...f, currentPassword: v }))}
+              />
+              <ChampMotDePasse
+                id="newPassword"
+                label="Nouveau mot de passe"
+                autoComplete="new-password"
+                minLength={8}
+                hint="Minimum 8 caractères."
+                value={passwordForm.newPassword}
+                visible={showNewPwd}
+                onToggle={() => setShowNewPwd((v) => !v)}
+                disabled={pwdSaving}
+                onChange={(v) => setPasswordForm((f) => ({ ...f, newPassword: v }))}
+              />
+              <ChampMotDePasse
+                id="newPasswordConfirmation"
+                label="Confirmer le nouveau mot de passe"
+                autoComplete="new-password"
+                minLength={8}
+                value={passwordForm.newPasswordConfirmation}
+                visible={showConfirmPwd}
+                onToggle={() => setShowConfirmPwd((v) => !v)}
+                disabled={pwdSaving}
+                onChange={(v) => setPasswordForm((f) => ({ ...f, newPasswordConfirmation: v }))}
+              />
+
+              {pwdError && <Alert message={pwdError} />}
+              {pwdSuccess && <Alert variant="success" message="Mot de passe modifié avec succès." />}
+
+              <Button type="submit" size="lg" disabled={pwdSaving} className="w-full sm:w-auto">
+                {pwdSaving ? 'Modification…' : 'Modifier le mot de passe'}
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
+      )}
+    </div>
+  )
+}
+
+function Onglet({ actif, icon: Icon, label, onClick }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-current={actif ? 'page' : undefined}
+      className={`flex items-center gap-2 border-b-2 px-4 py-3 text-sm font-medium transition-colors ${
+        actif ? 'border-brand-600 text-brand-700' : 'border-transparent text-ink-500 hover:text-ink-700'
+      }`}
+    >
+      <Icon className="h-4 w-4" /> {label}
+    </button>
+  )
+}
+
+function ChampMotDePasse({
+  id, label, value, onChange, visible, onToggle, disabled, hint, autoComplete, minLength,
+}) {
+  return (
+    <div>
+      <label htmlFor={id} className="mb-1.5 block text-sm font-medium text-ink-700">
+        {label}
+      </label>
+      <div className="relative">
+        <Lock className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-ink-400" aria-hidden="true" />
+        <input
+          id={id}
+          type={visible ? 'text' : 'password'}
+          autoComplete={autoComplete}
+          minLength={minLength}
+          required
+          value={value}
+          disabled={disabled}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder="••••••••"
+          className="w-full rounded-lg border border-ink-200 bg-white py-3 pl-10 pr-12 text-ink-900 transition-colors placeholder:text-ink-400 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-brand-500 disabled:cursor-not-allowed disabled:bg-ink-50"
+        />
+        <button
+          type="button"
+          onClick={onToggle}
+          className="absolute right-3 top-1/2 -translate-y-1/2 text-ink-400 transition-colors hover:text-ink-600"
+          aria-label={visible ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
+        >
+          {visible ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+        </button>
+      </div>
+      {hint && <p className="mt-1 text-xs text-ink-500">{hint}</p>}
     </div>
   )
 }

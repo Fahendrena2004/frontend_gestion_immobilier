@@ -1,11 +1,10 @@
 import api from '@/lib/axios'
-import { USE_MOCK, mockResolve } from '@/lib/mock'
-import { mockNotifications } from '@/data/mockData'
 
 /**
- * Client du module Notifications.
- * Routes réelles (PATCH, pas PUT) : GET /notifications,
- * PATCH /notifications/{id}/read, PATCH /notifications/read-all.
+ * Module Notifications de l'API.
+ *   GET   /notifications          (renvoie aussi unread_count)
+ *   PATCH /notifications/{id}/read
+ *   PATCH /notifications/read-all
  */
 
 function mapNotification(n) {
@@ -13,28 +12,31 @@ function mapNotification(n) {
     id: n.id,
     titre: n.titre,
     message: n.contenu,
-    lu: n.lu,
+    lu: !!n.lu,
     type: n.type,
     date: n.created_at,
   }
 }
 
 export const notificationService = {
+  /** @returns {{ items: Array, unreadCount: number, meta: object|null }} */
   async list() {
-    if (USE_MOCK) return mockResolve(mockNotifications)
-    const { data } = await api.get('/notifications')
-    return (Array.isArray(data) ? data : data?.data || []).map(mapNotification)
+    const response = await api.get('/notifications')
+    return {
+      items: (response.data || []).map(mapNotification),
+      unreadCount: response.extra?.unread_count ?? 0,
+      meta: response.meta || null,
+    }
   },
 
   async markAsRead(id) {
-    if (USE_MOCK) return mockResolve({ id, lu: true })
     const { data } = await api.patch(`/notifications/${id}/read`)
     return mapNotification(data)
   },
 
+  /** @returns {number} nombre de notifications marquées comme lues */
   async markAllAsRead() {
-    if (USE_MOCK) return mockResolve({ success: true })
     const { data } = await api.patch('/notifications/read-all')
-    return data
+    return data?.updated ?? 0
   },
 }

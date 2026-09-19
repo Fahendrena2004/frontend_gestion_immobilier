@@ -1,41 +1,37 @@
 import api from '@/lib/axios'
-import { USE_MOCK, mockResolve } from '@/lib/mock'
-import { mockStats } from '@/data/mockData'
 
 /**
- * Client du module Reporting.
- * Pas de module backend dédié : les statistiques admin viennent de
+ * Statistiques d'administration.
+ * Il n'y a pas de module Reporting dédié côté API : tout vient de
  * GET /administration/dashboard-stats (DashboardController).
  */
 
 function mapStats(s) {
   const logementsParStatut = s.logements_par_statut || {}
+  const logementsParModeration = s.logements_par_moderation || {}
+
   return {
-    totalLogements: Object.values(logementsParStatut).reduce((a, b) => a + b, 0),
+    totalLogements: Object.values(logementsParStatut).reduce((total, n) => total + n, 0),
     logementsDisponibles: logementsParStatut.disponible || 0,
+    logementsLoues: logementsParStatut.loue || 0,
+    logementsParStatut,
+    logementsParModeration,
+    annoncesAModerer: logementsParModeration.en_attente || 0,
     demandesEnAttente: s.demandes_en_attente ?? 0,
     paiementsEnAttenteVerification: s.paiements_en_attente ?? 0,
     revenusDuMois: s.revenus_mois_courant ?? 0,
+    utilisateursTotal: s.utilisateurs_total ?? 0,
     usersParRole: s.users_par_role || {},
-    logementsParStatut: logementsParStatut,
-    logementsParModeration: s.logements_par_moderation || {},
-    totalLocations: logementsParStatut.loue || 0,
-    evolutionDemandes: [],
+    totalLocations: s.locations_actives ?? 0,
+    // Séries mensuelles : [{ mois: 'sept.', periode: '2026-09', valeur: 11 }]
+    evolutionDemandes: s.demandes_par_mois || [],
+    evolutionRevenus: s.revenus_par_mois || [],
   }
 }
 
 export const reportingService = {
   async getDashboardStats() {
-    if (USE_MOCK) return mockResolve(mockStats)
     const { data } = await api.get('/administration/dashboard-stats')
     return mapStats(data)
-  },
-
-  async exportRapport(type) {
-    if (USE_MOCK) return mockResolve({ url: '#' })
-    return Promise.reject({
-      status: 501,
-      message: "L'export de rapports n'est pas encore disponible côté serveur.",
-    })
   },
 }

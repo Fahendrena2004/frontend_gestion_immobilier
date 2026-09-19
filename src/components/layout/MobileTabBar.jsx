@@ -1,7 +1,7 @@
 import { NavLink } from 'react-router-dom'
 import {
   LayoutDashboard, FileText, CalendarCheck, KeyRound, Search,
-  Building2, ClipboardList, Users, ShieldCheck, Wallet, BarChart3, Home as HomeIcon
+  Building2, ClipboardList, Users, ShieldCheck, Wallet, BarChart3
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 

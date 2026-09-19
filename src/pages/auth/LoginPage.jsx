@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { Home, LogIn, Mail, Lock, Eye, EyeOff } from 'lucide-react'
-import Input from '@/components/ui/Input'
 import Button from '@/components/ui/Button'
 import { useAuth } from '@/context/AuthContext'
 
@@ -50,17 +49,17 @@ export default function LoginPage() {
             La plateforme de location de confiance à Fianarantsoa. Trouvez votre logement idéal ou gérez vos biens en toute sérénité.
           </p>
           <div className="grid grid-cols-3 gap-4 text-center">
-            <div className="p-4 rounded-xl bg-ink-50 border border-ink-100">
-              <p className="font-display text-2xl font-bold text-brand-700">50+</p>
-              <p className="text-xs text-ink-500 mt-1">Logements</p>
+            <div className="rounded-xl border border-ink-100 bg-ink-50 p-4">
+              <p className="text-sm font-semibold text-brand-700">Centralisé</p>
+              <p className="mt-1 text-xs text-ink-500">Toutes les annonces au même endroit</p>
             </div>
-            <div className="p-4 rounded-xl bg-ink-50 border border-ink-100">
-              <p className="font-display text-2xl font-bold text-brand-700">200+</p>
-              <p className="text-xs text-ink-500 mt-1">Locataires</p>
+            <div className="rounded-xl border border-ink-100 bg-ink-50 p-4">
+              <p className="text-sm font-semibold text-brand-700">Vérifié</p>
+              <p className="mt-1 text-xs text-ink-500">Annonces modérées avant publication</p>
             </div>
-            <div className="p-4 rounded-xl bg-ink-50 border border-ink-100">
-              <p className="font-display text-2xl font-bold text-brand-700">98%</p>
-              <p className="text-xs text-ink-500 mt-1">Satisfaction</p>
+            <div className="rounded-xl border border-ink-100 bg-ink-50 p-4">
+              <p className="text-sm font-semibold text-brand-700">Suivi</p>
+              <p className="mt-1 text-xs text-ink-500">Contrats, factures et quittances</p>
             </div>
           </div>
         </div>
@@ -111,17 +110,9 @@ export default function LoginPage() {
             </div>
 
             <div>
-              <div className="flex items-center justify-between mb-1.5">
-                <label htmlFor="password" className="block text-sm font-medium text-ink-700">
-                  Mot de passe
-                </label>
-                <Link
-                  to="/mot-de-passe-oublie"
-                  className="text-sm text-brand-600 hover:text-brand-700 underline underline-offset-1 transition-colors"
-                >
-                  Mot de passe oublié ?
-                </Link>
-              </div>
+              <label htmlFor="password" className="mb-1.5 block text-sm font-medium text-ink-700">
+                Mot de passe
+              </label>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-ink-400" aria-hidden="true" />
                 <input

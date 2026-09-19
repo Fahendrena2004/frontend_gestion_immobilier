@@ -1,97 +1,89 @@
 import api from '@/lib/axios'
-import { USE_MOCK, mockResolve } from '@/lib/mock'
-import { mockUsers, mockProperties, EQUIPEMENTS } from '@/data/mockData'
+import { mapUser } from '@/services/authService'
 import {
   accountStatusToBackendBoolean,
-  accountStatusToFront,
   roleToBackend,
-  roleToFront,
-  statusToBackend,
   statusToFront,
 } from '@/lib/enums'
 
 /**
- * Client du module Admin (modération des annonces, gestion des comptes).
- * Routes réelles : /administration/logements, /administration/users/{id}/status,
- * /users et /logements/equipements (PATCH, pas PUT).
+ * Module Administration de l'API (réservé au rôle admin).
+ *   GET   /administration/logements                 (?statut_moderation=)
+ *   PATCH /administration/logements/{id}/moderation { statut_moderation }
+ *   PATCH /administration/users/{id}/status         { is_active }
+ *   GET   /users                                    (?role=, ?search=)
  */
 
+/** Action de modération -> statut attendu par l'API. */
 const MODERATION_ACTIONS = {
   APPROUVER: 'approuve',
   SUSPENDRE: 'suspendu',
   SUPPRIMER: 'supprime',
 }
 
-function mapUser(user) {
-  if (!user) return user
-  return {
-    id: user.id,
-    nom: user.name,
-    email: user.email,
-    telephone: user.telephone,
-    cin: user.cin,
-    profession: user.profession,
-    adresse: user.adresse,
-    avatar: user.avatar,
-    role: roleToFront(user.role),
-    statut: accountStatusToFront(user.is_active),
-    dateInscription: user.created_at,
-  }
-}
-
 function mapAnnonce(l) {
   return {
     id: l.id,
     titre: l.titre,
-    quartier: l.quartier?.nom,
-    proprietaireNom: l.proprietaire?.name,
+    quartier: l.quartier?.nom ?? null,
+    proprietaireNom: l.proprietaire?.name ?? null,
+    proprietaireEmail: l.proprietaire?.email ?? null,
     prix: l.loyer != null ? Number(l.loyer) : null,
+    // Sur cet écran, le statut affiché est celui de la MODÉRATION.
     statut: statusToFront(l.statut_moderation),
-    type: l.type_logement?.libelle,
-    surface: l.superficie,
+    statutLogement: statusToFront(l.statut),
+    type: l.type_logement?.libelle ?? null,
+    surface: l.superficie != null ? Number(l.superficie) : null,
     pieces: l.nombre_pieces,
+    nombrePhotos: (l.photos || []).length,
+    dateAjout: l.created_at,
   }
 }
 
 export const adminService = {
+  /** filters : { statutModeration: 'EN_ATTENTE'|'APPROUVE'|'SUSPENDU'|'SUPPRIME' } */
   async listAnnonces(filters = {}) {
-    if (USE_MOCK) return mockResolve(mockProperties)
     const params = {}
-    if (filters.statutModeration) params.statut_moderation = statusToBackend(filters.statutModeration)
-    const { data } = await api.get('/administration/logements', { params })
-    return (data?.data || []).map(mapAnnonce)
+    if (filters.statutModeration) {
+      params.statut_moderation = String(filters.statutModeration).toLowerCase()
+    }
+
+    const response = await api.get('/administration/logements', { params })
+    return {
+      items: (response.data || []).map(mapAnnonce),
+      meta: response.meta || null,
+    }
   },
 
+  /** action : 'APPROUVER' | 'SUSPENDRE' | 'SUPPRIMER' */
   async moderateAnnonce(id, action) {
-    // action: 'APPROUVER' | 'SUSPENDRE' | 'SUPPRIMER'
-    if (USE_MOCK) return mockResolve({ id, action })
+    const statutModeration = MODERATION_ACTIONS[action]
+    if (!statutModeration) throw new Error(`Action de modération inconnue : ${action}`)
+
     const { data } = await api.patch(`/administration/logements/${id}/moderation`, {
-      statut_moderation: MODERATION_ACTIONS[action],
+      statut_moderation: statutModeration,
     })
     return mapAnnonce(data)
   },
 
+  /** filters : { role: 'LOCATAIRE'|'PROPRIETAIRE'|'ADMINISTRATEUR', search } */
   async listUsers(filters = {}) {
-    if (USE_MOCK) return mockResolve(mockUsers)
     const params = {}
     if (filters.role) params.role = roleToBackend(filters.role)
     if (filters.search) params.search = filters.search
-    const { data } = await api.get('/users', { params })
-    return (Array.isArray(data) ? data : data?.data || []).map(mapUser)
+
+    const response = await api.get('/users', { params })
+    return {
+      items: (response.data || []).map(mapUser),
+      meta: response.meta || null,
+    }
   },
 
+  /** statut : 'ACTIF' | 'SUSPENDU' — l'API refuse d'agir sur un autre admin. */
   async toggleUserStatus(id, statut) {
-    // statut: 'ACTIF' | 'SUSPENDU'
-    if (USE_MOCK) return mockResolve({ id, statut })
     const { data } = await api.patch(`/administration/users/${id}/status`, {
       is_active: accountStatusToBackendBoolean(statut),
     })
     return mapUser(data)
-  },
-
-  async listEquipements() {
-    if (USE_MOCK) return mockResolve(EQUIPEMENTS)
-    const { data } = await api.get('/logements/equipements')
-    return (Array.isArray(data) ? data : data?.data || []).map((e) => ({ id: e.id, nom: e.libelle }))
   },
 }

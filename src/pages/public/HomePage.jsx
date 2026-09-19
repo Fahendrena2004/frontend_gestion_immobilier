@@ -6,10 +6,11 @@ import {
 } from 'lucide-react'
 import PropertyCard from '@/components/shared/PropertyCard'
 import EmptyState from '@/components/shared/EmptyState'
+import Alert from '@/components/shared/Alert'
+import LoadingState from '@/components/shared/LoadingState'
 import Button from '@/components/ui/Button'
 import Input from '@/components/ui/Input'
 import Select from '@/components/ui/Select'
-import { cn } from '@/lib/utils'
 import { propertyService } from '@/services/propertyService'
 import useInView from '@/hooks/useInView'
 
@@ -52,28 +53,67 @@ export default function HomePage() {
   const [properties, setProperties] = useState([])
   const [equipements, setEquipements] = useState([])
   const [quartiers, setQuartiers] = useState([])
-  const [types, setTypes] = useState([]);
+  const [types, setTypes] = useState([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
   const [meta, setMeta] = useState(null)
-  const [filters, setFilters] = useState({ q: '', quartier: '', type: '', prixMax: '', piecesMin: '', equipements: [], page: 1 })
+  // Les filtres portent des identifiants : ils sont envoyés tels quels à l'API,
+  // qui filtre et pagine l'ensemble du catalogue (et non la page affichée).
+  const [filters, setFilters] = useState({
+    q: '',
+    quartierId: '',
+    typeLogementId: '',
+    prixMax: '',
+    piecesMin: '',
+    equipements: [],
+    page: 1,
+  })
   const [showFilters, setShowFilters] = useState(false)
 
+  // Référentiels (quartiers, types, équipements) : chargés une fois.
   useEffect(() => {
-  propertyService.listEquipements().then(setEquipements)
-  propertyService.listQuartiers().then(setQuartiers)
-  propertyService.listTypes().then(setTypes)
-}, [])
-
-  useEffect(() => {
-    setLoading(true)
-    const handle = setTimeout(() => {
-      propertyService.search(filters).then(({ items, meta }) => {
-        setProperties(items)
-        setMeta(meta)
-        setLoading(false)
+    Promise.all([
+      propertyService.listEquipements(),
+      propertyService.listQuartiers(),
+      propertyService.listTypes(),
+    ])
+      .then(([eq, qua, typ]) => {
+        setEquipements(eq)
+        setQuartiers(qua)
+        setTypes(typ)
       })
-    }, 200)
-    return () => clearTimeout(handle)
+      .catch((err) => setError(err.message))
+  }, [])
+
+  // Recherche : légèrement différée pour ne pas appeler l'API à chaque frappe.
+  useEffect(() => {
+    let annule = false
+    setLoading(true)
+
+    const handle = setTimeout(() => {
+      propertyService
+        .search(filters)
+        .then(({ items, meta: pagination }) => {
+          if (annule) return
+          setProperties(items)
+          setMeta(pagination)
+          setError(null)
+        })
+        .catch((err) => {
+          if (annule) return
+          setProperties([])
+          setMeta(null)
+          setError(err.message)
+        })
+        .finally(() => {
+          if (!annule) setLoading(false)
+        })
+    }, 300)
+
+    return () => {
+      annule = true
+      clearTimeout(handle)
+    }
   }, [filters])
 
   useEffect(() => {
@@ -94,9 +134,15 @@ export default function HomePage() {
   }, [location.state])
 
   const activeFilterCount = useMemo(
-    () => [filters.quartier, filters.type, filters.prixMax, filters.piecesMin].filter(Boolean).length + filters.equipements.length,
+    () =>
+      [filters.quartierId, filters.typeLogementId, filters.prixMax, filters.piecesMin].filter(Boolean).length +
+      filters.equipements.length,
     [filters]
   )
+
+  function resetFilters() {
+    setFilters({ q: '', quartierId: '', typeLogementId: '', prixMax: '', piecesMin: '', equipements: [], page: 1 })
+  }
 
   function toggleEquipement(id) {
     setFilters((f) => ({
@@ -154,21 +200,25 @@ export default function HomePage() {
           </div>
 
           <div className="mt-6 flex flex-wrap items-center justify-center gap-2">
-            {[{ libelle: 'Tous' }, ...types].map((t) => (
-              <button
-                key={t.libelle}
-                type="button"
-                onClick={() => setFilters((f) => ({ ...f, type: t.libelle === 'Tous' ? '' : t.libelle, page: 1 }))}
-                className={
-                  'whitespace-nowrap rounded-full px-4 py-1.5 text-sm font-medium transition-colors ' +
-                  ((t.libelle === 'Tous' ? !filters.type : filters.type === t.libelle)
-                    ? 'bg-gold-500 text-brand-900'
-                    : 'bg-white/15 text-white backdrop-blur-sm hover:bg-white/25')
-                }
-              >
-                {t.libelle}
-              </button>
-            ))}
+            {[{ id: '', libelle: 'Tous' }, ...types].map((t) => {
+              const actif = filters.typeLogementId === t.id
+              return (
+                <button
+                  key={t.id || 'tous'}
+                  type="button"
+                  aria-pressed={actif}
+                  onClick={() => setFilters((f) => ({ ...f, typeLogementId: t.id, page: 1 }))}
+                  className={
+                    'whitespace-nowrap rounded-full px-4 py-1.5 text-sm font-medium transition-colors ' +
+                    (actif
+                      ? 'bg-gold-500 text-brand-900'
+                      : 'bg-white/15 text-white backdrop-blur-sm hover:bg-white/25')
+                  }
+                >
+                  {t.libelle}
+                </button>
+              )
+            })}
           </div>
         </div>
       </section>
@@ -193,13 +243,21 @@ export default function HomePage() {
         {showFilters && (
           <Reveal>
             <div className="mb-8 grid grid-cols-1 gap-4 rounded-lg border border-ink-100 bg-white p-5 shadow-sm sm:grid-cols-2 lg:grid-cols-4">
-              <Select label="Quartier" value={filters.quartier} onChange={(e) => setFilters((f) => ({ ...f, quartier: e.target.value, page: 1 }))}>
+              <Select
+                label="Quartier"
+                value={filters.quartierId}
+                onChange={(e) => setFilters((f) => ({ ...f, quartierId: e.target.value, page: 1 }))}
+              >
                 <option value="">Tous les quartiers</option>
-                {quartiers.map((q) => <option key={q.id} value={q.nom}>{q.nom}</option>)}
+                {quartiers.map((q) => <option key={q.id} value={q.id}>{q.nom}</option>)}
               </Select>
-              <Select label="Type de logement" value={filters.type} onChange={(e) => setFilters((f) => ({ ...f, type: e.target.value, page: 1 }))}>
+              <Select
+                label="Type de logement"
+                value={filters.typeLogementId}
+                onChange={(e) => setFilters((f) => ({ ...f, typeLogementId: e.target.value, page: 1 }))}
+              >
                 <option value="">Tous les types</option>
-                {types.map((t) => <option key={t.id} value={t.libelle}>{t.libelle}</option>)}
+                {types.map((t) => <option key={t.id} value={t.id}>{t.libelle}</option>)}
               </Select>
               <Input
                 label="Prix maximum (Ar/mois)"
@@ -216,10 +274,11 @@ export default function HomePage() {
               <div className="sm:col-span-2 lg:col-span-4">
                 <p className="mb-2 text-sm font-medium text-ink-700">Équipements</p>
                 <div className="flex flex-wrap gap-2">
-                  {equipements.map((eq, index) => (
+                  {equipements.map((eq) => (
                     <button
-                      key={eq.id ?? `equipement-${index}`}
+                      key={eq.id}
                       type="button"
+                      aria-pressed={filters.equipements.includes(eq.id)}
                       onClick={() => toggleEquipement(eq.id)}
                       className={
                         'rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ' +
@@ -233,21 +292,53 @@ export default function HomePage() {
                   ))}
                 </div>
               </div>
+
+              {activeFilterCount > 0 && (
+                <div className="sm:col-span-2 lg:col-span-4">
+                  <Button variant="ghost" size="sm" onClick={resetFilters}>
+                    Réinitialiser les filtres
+                  </Button>
+                </div>
+              )}
             </div>
           </Reveal>
         )}
 
         <div className="mb-6 flex items-center justify-between">
           <h2 className="font-display text-xl font-semibold text-ink-900">
-            {loading ? 'Recherche en cours…' : `${properties.length} logement${properties.length > 1 ? 's' : ''} disponible${properties.length > 1 ? 's' : ''}`}
+            {loading ? 'Recherche en cours…' : formatResultCount(meta, properties.length)}
           </h2>
         </div>
 
-        {!loading && properties.length === 0 && (
+        {error && (
+          <Alert
+            title="Impossible de charger les logements"
+            message={error}
+            className="mb-6"
+          >
+            <Button
+              variant="outline"
+              size="sm"
+              className="mt-2"
+              onClick={() => setFilters((f) => ({ ...f }))}
+            >
+              Réessayer
+            </Button>
+          </Alert>
+        )}
+
+        {loading && properties.length === 0 && <LoadingState label="Recherche des logements…" />}
+
+        {!loading && !error && properties.length === 0 && (
           <EmptyState
             icon={FileSearch}
             title="Aucun logement ne correspond à votre recherche"
             description="Essayez d'élargir vos critères : quartier, prix ou équipements."
+            action={
+              activeFilterCount > 0 ? (
+                <Button variant="outline" onClick={resetFilters}>Réinitialiser les filtres</Button>
+              ) : null
+            }
           />
         )}
 
@@ -395,6 +486,16 @@ export default function HomePage() {
       </section>
     </div>
   )
+}
+
+/**
+ * Libellé du nombre de résultats. `meta.total` porte sur l'ensemble des
+ * logements correspondant aux filtres, pas seulement sur la page affichée.
+ */
+function formatResultCount(meta, pageCount) {
+  const total = meta?.total ?? pageCount
+  if (total === 0) return 'Aucun logement disponible'
+  return `${total} logement${total > 1 ? 's' : ''} disponible${total > 1 ? 's' : ''}`
 }
 
 /* --------------------------------------------------------
