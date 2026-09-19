@@ -15,15 +15,15 @@ export default function ProprietaireDashboard() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    Promise.all([
-      propertyService.search({ proprietaireId: user?.id }),
-      rentalService.listDemandes(),
-    ]).then(([logementsData, demandesData]) => {
-      setLogements(logementsData.length ? logementsData : [])
-      setDemandes(demandesData)
-      setLoading(false)
-    })
-  }, [user])
+  Promise.all([
+    propertyService.search({ proprietaireId: user?.id }),
+    rentalService.listDemandes(),
+  ]).then(([{ items }, demandesData]) => {
+    setLogements(items)
+    setDemandes(demandesData)
+    setLoading(false)
+  })
+}, [user])
 
   const demandesEnAttente = demandes.filter((d) => d.statut === 'EN_ATTENTE').length
 

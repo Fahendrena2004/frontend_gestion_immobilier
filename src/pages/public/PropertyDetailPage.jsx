@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { BedDouble, Check, MapPin, Ruler, Send } from 'lucide-react'
+import { BedDouble, Check, Clock, MapPin, Ruler, Send } from 'lucide-react'
 import Button from '@/components/ui/Button'
 import { Card, CardContent } from '@/components/ui/Card'
 import Textarea from '@/components/ui/Textarea'
@@ -10,7 +10,7 @@ import StatusBadge from '@/components/shared/StatusBadge'
 import { propertyService } from '@/services/propertyService'
 import { rentalService } from '@/services/rentalService'
 import { useAuth } from '@/context/AuthContext'
-import { formatMoney } from '@/lib/utils'
+import { formatMoney, formatRelativeDate } from '@/lib/utils'
 
 export default function PropertyDetailPage() {
   const { id } = useParams()
@@ -49,7 +49,10 @@ export default function PropertyDetailPage() {
     <div className="mx-auto max-w-5xl px-4 py-10 sm:px-6 lg:px-8">
       <div className="mb-4 flex items-center gap-2">
         <StatusBadge status={property.statut} />
-        <span className="text-sm text-ink-500">Publié le {new Date(property.dateAjout).toLocaleDateString('fr-FR')}</span>
+        <span className="flex items-center gap-1 text-sm text-ink-500">
+          <Clock className="h-3.5 w-3.5" />
+          {formatRelativeDate(property.dateAjout)}
+        </span>
       </div>
 
       <div className="flex h-72 items-center justify-center rounded-xl bg-gradient-to-br from-brand-700 to-brand-900 sm:h-96">
