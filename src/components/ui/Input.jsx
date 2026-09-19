@@ -1,49 +1,25 @@
-import { forwardRef, useState } from 'react'
-import { Eye, EyeOff } from 'lucide-react'
-import { cn } from '@/lib/utils'
+import * as React from "react"
+import { Input as InputPrimitive } from "@base-ui/react/input"
 
-const Input = forwardRef(function Input({ className, label, error, id, type, ...props }, ref) {
-  const inputId = id || props.name
-  const isPassword = type === 'password'
-  const [showPassword, setShowPassword] = useState(false)
+import { cn } from "@/lib/utils"
 
+function Input({
+  className,
+  type,
+  ...props
+}) {
   return (
-    <div className="flex flex-col gap-1.5">
-      {label && (
-        <label htmlFor={inputId} className="text-sm font-medium text-ink-700">
-          {label}
-        </label>
+    <InputPrimitive
+      type={type}
+      data-slot="input"
+      className={cn(
+        "h-8 w-full min-w-0 rounded-lg border border-input bg-transparent px-2.5 py-1 text-base transition-colors outline-none file:inline-flex file:h-6 file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:pointer-events-none disabled:cursor-not-allowed disabled:bg-input/50 disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20 md:text-sm dark:bg-input/30 dark:disabled:bg-input/80 dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40",
+        className
       )}
-      <div className="relative">
-        <input
-          id={inputId}
-          ref={ref}
-          type={isPassword && showPassword ? 'text' : type}
-          className={cn(
-            'h-10 w-full rounded-md border border-ink-200 bg-white px-3 text-sm text-ink-900',
-            'placeholder:text-ink-300 transition-colors',
-            'focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100',
-            error && 'border-brick-500 focus:border-brick-500 focus:ring-brick-50',
-            isPassword && 'pr-10',
-            className
-          )}
-          {...props}
-        />
-        {isPassword && (
-          <button
-            type="button"
-            onClick={() => setShowPassword((v) => !v)}
-            className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-0.5 text-ink-400 hover:text-ink-600 transition-colors"
-            aria-label={showPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
-            tabIndex={-1}
-          >
-            {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-          </button>
-        )}
-      </div>
-      {error && <span className="text-xs text-brick-600">{error}</span>}
-    </div>
+      {...props}
+    />
   )
-})
+}
 
+export { Input }
 export default Input

@@ -1,29 +1,139 @@
-import { cn } from '@/lib/utils'
+import * as React from "react"
 
-export function Table({ className, children }) {
+import { cn } from "@/lib/utils"
+
+function Table({
+  className,
+  ...props
+}) {
   return (
-    <div className="overflow-x-auto rounded-lg border border-ink-100 bg-white">
-      <table className={cn('w-full text-left text-sm', className)}>{children}</table>
+    <div
+      data-slot="table-container"
+      className="relative w-full overflow-x-auto"
+    >
+      <table
+        data-slot="table"
+        className={cn("w-full caption-bottom text-sm", className)}
+        {...props}
+      />
     </div>
   )
 }
 
-export function Thead({ className, children }) {
+function TableHeader({
+  className,
+  ...props
+}) {
   return (
-    <thead className={cn('border-b border-ink-100 bg-ink-50 text-xs uppercase text-ink-500', className)}>
-      {children}
-    </thead>
+    <thead
+      data-slot="table-header"
+      className={cn("[&_tr]:border-b", className)}
+      {...props}
+    />
   )
 }
 
-export function Th({ className, children }) {
-  return <th className={cn('px-4 py-3 font-medium', className)}>{children}</th>
+function TableBody({
+  className,
+  ...props
+}) {
+  return (
+    <tbody
+      data-slot="table-body"
+      className={cn("[&_tr:last-child]:border-0", className)}
+      {...props}
+    />
+  )
 }
 
-export function Tr({ className, children }) {
-  return <tr className={cn('border-b border-ink-100 last:border-0 hover:bg-ink-50/60', className)}>{children}</tr>
+function TableFooter({
+  className,
+  ...props
+}) {
+  return (
+    <tfoot
+      data-slot="table-footer"
+      className={cn(
+        "border-t bg-muted/50 font-medium [&>tr]:last:border-b-0",
+        className
+      )}
+      {...props}
+    />
+  )
 }
 
-export function Td({ className, children }) {
-  return <td className={cn('px-4 py-3 text-ink-700', className)}>{children}</td>
+function TableRow({
+  className,
+  ...props
+}) {
+  return (
+    <tr
+      data-slot="table-row"
+      className={cn(
+        "border-b transition-colors hover:bg-muted/50 has-aria-expanded:bg-muted/50 data-[state=selected]:bg-muted",
+        className
+      )}
+      {...props}
+    />
+  )
+}
+
+function TableHead({
+  className,
+  ...props
+}) {
+  return (
+    <th
+      data-slot="table-head"
+      className={cn(
+        "h-10 px-2 text-left align-middle font-medium whitespace-nowrap text-foreground [&:has([role=checkbox])]:pr-0",
+        className
+      )}
+      {...props}
+    />
+  )
+}
+
+function TableCell({
+  className,
+  ...props
+}) {
+  return (
+    <td
+      data-slot="table-cell"
+      className={cn(
+        "p-2 align-middle whitespace-nowrap [&:has([role=checkbox])]:pr-0",
+        className
+      )}
+      {...props}
+    />
+  )
+}
+
+function TableCaption({
+  className,
+  ...props
+}) {
+  return (
+    <caption
+      data-slot="table-caption"
+      className={cn("mt-4 text-sm text-muted-foreground", className)}
+      {...props}
+    />
+  )
+}
+
+export {
+  Table,
+  TableHeader,
+  TableBody,
+  TableFooter,
+  TableHead,
+  TableRow,
+  TableCell,
+  TableCaption,
+  TableHeader as Thead,
+  TableHead as Th,
+  TableRow as Tr,
+  TableCell as Td,
 }
