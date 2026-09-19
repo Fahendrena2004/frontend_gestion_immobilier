@@ -109,11 +109,19 @@ export default function LogementFormPage() {
               />
             </div>
             <Select
-              label="Quartier <span className='text-brick-500'>*</span>"
+              label={
+                <>
+                  Quartier <span className="text-brick-500">*</span>
+                </>
+              }
               value={form.quartier}
               onChange={(e) => setForm({ ...form, quartier: e.target.value })}
             >
-              {QUARTIERS.map((q) => <option key={q} value={q}>{q}</option>)}
+              {QUARTIERS.map((q) => (
+                <option key={q} value={q}>
+                  {q}
+                </option>
+              ))}
             </Select>
             <Select
               label="Type de logement <span className='text-brick-500'>*</span>"
