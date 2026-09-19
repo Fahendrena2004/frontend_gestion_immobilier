@@ -14,8 +14,8 @@ export default function MesLogementsPage() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    propertyService.search({ proprietaireId: user?.id }).then((data) => {
-      setLogements(data)
+    propertyService.search({ proprietaireId: user?.id }).then(({ items }) => {
+      setLogements(items)
       setLoading(false)
     })
   }, [user])

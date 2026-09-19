@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import {
   Search, SlidersHorizontal, MapPin, FileSearch, CalendarCheck, KeyRound,
-  ChevronDown, Home, ShieldCheck, Building2, Sparkles, ArrowRight, Users,
+  ChevronDown, ChevronLeft, ChevronRight, Home, ShieldCheck, Building2, Sparkles, ArrowRight, Users,
 } from 'lucide-react'
 import PropertyCard from '@/components/shared/PropertyCard'
 import EmptyState from '@/components/shared/EmptyState'
@@ -11,10 +11,7 @@ import Input from '@/components/ui/Input'
 import Select from '@/components/ui/Select'
 import { cn } from '@/lib/utils'
 import { propertyService } from '@/services/propertyService'
-import { QUARTIERS } from '@/data/mockData'
 import useInView from '@/hooks/useInView'
-
-const TYPES = ['Villa', 'Appartement', 'Studio', 'Maison', 'Duplex', 'Chambre']
 
 const MARQUEE_MESSAGES = [
   'Trouvez le logement qui vous correspond',
@@ -54,21 +51,25 @@ export default function HomePage() {
   const navigate = useNavigate()
   const [properties, setProperties] = useState([])
   const [equipements, setEquipements] = useState([])
-  const [types, setTypes] = useState([])
+  const [quartiers, setQuartiers] = useState([])
+  const [types, setTypes] = useState([]);
   const [loading, setLoading] = useState(true)
-  const [filters, setFilters] = useState({ q: '', quartier: '', type: '', prixMax: '', piecesMin: '', equipements: [] })
+  const [meta, setMeta] = useState(null)
+  const [filters, setFilters] = useState({ q: '', quartier: '', type: '', prixMax: '', piecesMin: '', equipements: [], page: 1 })
   const [showFilters, setShowFilters] = useState(false)
 
   useEffect(() => {
-    propertyService.listEquipements().then(setEquipements)
-    propertyService.listTypes().then(setTypes)
-  }, [])
+  propertyService.listEquipements().then(setEquipements)
+  propertyService.listQuartiers().then(setQuartiers)
+  propertyService.listTypes().then(setTypes)
+}, [])
 
   useEffect(() => {
     setLoading(true)
     const handle = setTimeout(() => {
-      propertyService.search(filters).then((data) => {
-        setProperties(data)
+      propertyService.search(filters).then(({ items, meta }) => {
+        setProperties(items)
+        setMeta(meta)
         setLoading(false)
       })
     }, 200)
@@ -101,6 +102,7 @@ export default function HomePage() {
     setFilters((f) => ({
       ...f,
       equipements: f.equipements.includes(id) ? f.equipements.filter((e) => e !== id) : [...f.equipements, id],
+      page: 1,
     }))
   }
 
@@ -135,7 +137,7 @@ export default function HomePage() {
               <Search className="h-5 w-5 shrink-0 text-ink-400" />
               <input
                 value={filters.q}
-                onChange={(e) => setFilters((f) => ({ ...f, q: e.target.value }))}
+                onChange={(e) => setFilters((f) => ({ ...f, q: e.target.value, page: 1 }))}
                 placeholder="Quartier, type de logement, mot-clé…"
                 className="h-11 w-full border-none bg-transparent text-sm text-ink-900 placeholder:text-ink-400 focus:outline-none"
               />
@@ -152,19 +154,19 @@ export default function HomePage() {
           </div>
 
           <div className="mt-6 flex flex-wrap items-center justify-center gap-2">
-            {['Tous', ...TYPES].map((type) => (
+            {[{ libelle: 'Tous' }, ...types].map((t) => (
               <button
-                key={type}
+                key={t.libelle}
                 type="button"
-                onClick={() => setFilters((f) => ({ ...f, type: type === 'Tous' ? '' : type }))}
+                onClick={() => setFilters((f) => ({ ...f, type: t.libelle === 'Tous' ? '' : t.libelle, page: 1 }))}
                 className={
                   'whitespace-nowrap rounded-full px-4 py-1.5 text-sm font-medium transition-colors ' +
-                  ((type === 'Tous' ? !filters.type : filters.type === type)
+                  ((t.libelle === 'Tous' ? !filters.type : filters.type === t.libelle)
                     ? 'bg-gold-500 text-brand-900'
                     : 'bg-white/15 text-white backdrop-blur-sm hover:bg-white/25')
                 }
               >
-                {type}
+                {t.libelle}
               </button>
             ))}
           </div>
@@ -191,22 +193,22 @@ export default function HomePage() {
         {showFilters && (
           <Reveal>
             <div className="mb-8 grid grid-cols-1 gap-4 rounded-lg border border-ink-100 bg-white p-5 shadow-sm sm:grid-cols-2 lg:grid-cols-4">
-              <Select label="Quartier" value={filters.quartier} onChange={(e) => setFilters((f) => ({ ...f, quartier: e.target.value }))}>
+              <Select label="Quartier" value={filters.quartier} onChange={(e) => setFilters((f) => ({ ...f, quartier: e.target.value, page: 1 }))}>
                 <option value="">Tous les quartiers</option>
-                {QUARTIERS.map((q) => <option key={q} value={q}>{q}</option>)}
+                {quartiers.map((q) => <option key={q.id} value={q.nom}>{q.nom}</option>)}
               </Select>
-              <Select label="Type de logement" value={filters.type} onChange={(e) => setFilters((f) => ({ ...f, type: e.target.value }))}>
+              <Select label="Type de logement" value={filters.type} onChange={(e) => setFilters((f) => ({ ...f, type: e.target.value, page: 1 }))}>
                 <option value="">Tous les types</option>
-                {TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
+                {types.map((t) => <option key={t.id} value={t.libelle}>{t.libelle}</option>)}
               </Select>
               <Input
                 label="Prix maximum (Ar/mois)"
                 type="number"
                 placeholder="ex : 500000"
                 value={filters.prixMax}
-                onChange={(e) => setFilters((f) => ({ ...f, prixMax: e.target.value }))}
+                onChange={(e) => setFilters((f) => ({ ...f, prixMax: e.target.value, page: 1 }))}
               />
-              <Select label="Pièces minimum" value={filters.piecesMin} onChange={(e) => setFilters((f) => ({ ...f, piecesMin: e.target.value }))}>
+              <Select label="Pièces minimum" value={filters.piecesMin} onChange={(e) => setFilters((f) => ({ ...f, piecesMin: e.target.value, page: 1 }))}>
                 <option value="">Indifférent</option>
                 {[1, 2, 3, 4, 5].map((n) => <option key={n} value={n}>{n}+</option>)}
               </Select>
@@ -214,9 +216,9 @@ export default function HomePage() {
               <div className="sm:col-span-2 lg:col-span-4">
                 <p className="mb-2 text-sm font-medium text-ink-700">Équipements</p>
                 <div className="flex flex-wrap gap-2">
-                  {equipements.map((eq) => (
+                  {equipements.map((eq, index) => (
                     <button
-                      key={eq.id}
+                      key={eq.id ?? `equipement-${index}`}
                       type="button"
                       onClick={() => toggleEquipement(eq.id)}
                       className={
@@ -256,6 +258,36 @@ export default function HomePage() {
             </Reveal>
           ))}
         </div>
+
+        {meta && meta.last_page > 1 && (
+          <div className="mt-8 flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={meta.current_page <= 1}
+              onClick={() => {
+                setFilters((f) => ({ ...f, page: f.page - 1 }))
+                document.getElementById('nos-logements')?.scrollIntoView({ behavior: 'smooth' })
+              }}
+            >
+              <ChevronLeft className="h-4 w-4" /> Précédent
+            </Button>
+            <p className="text-sm text-ink-500">
+              Page {meta.current_page} sur {meta.last_page} — {meta.total} logement{meta.total > 1 ? 's' : ''} au total
+            </p>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={meta.current_page >= meta.last_page}
+              onClick={() => {
+                setFilters((f) => ({ ...f, page: f.page + 1 }))
+                document.getElementById('nos-logements')?.scrollIntoView({ behavior: 'smooth' })
+              }}
+            >
+              Suivant <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
+        )}
       </section>
 
       {/* ============================================================
