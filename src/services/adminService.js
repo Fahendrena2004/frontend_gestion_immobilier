@@ -41,12 +41,13 @@ function mapAnnonce(l) {
 }
 
 export const adminService = {
-  /** filters : { statutModeration: 'EN_ATTENTE'|'APPROUVE'|'SUSPENDU'|'SUPPRIME' } */
+  /** filters : { statutModeration: 'EN_ATTENTE'|'APPROUVE'|'SUSPENDU'|'SUPPRIME', page } */
   async listAnnonces(filters = {}) {
     const params = {}
     if (filters.statutModeration) {
       params.statut_moderation = String(filters.statutModeration).toLowerCase()
     }
+    if (filters.page > 1) params.page = filters.page
 
     const response = await api.get('/administration/logements', { params })
     return {
@@ -66,11 +67,12 @@ export const adminService = {
     return mapAnnonce(data)
   },
 
-  /** filters : { role: 'LOCATAIRE'|'PROPRIETAIRE'|'ADMINISTRATEUR', search } */
+  /** filters : { role: 'LOCATAIRE'|'PROPRIETAIRE'|'ADMINISTRATEUR', search, page } */
   async listUsers(filters = {}) {
     const params = {}
     if (filters.role) params.role = roleToBackend(filters.role)
     if (filters.search) params.search = filters.search
+    if (filters.page > 1) params.page = filters.page
 
     const response = await api.get('/users', { params })
     return {

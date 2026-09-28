@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { Building2, MoreVertical, Pencil, Plus, Trash2 } from 'lucide-react'
+import { Building2, ChevronLeft, ChevronRight, MoreVertical, Pencil, Plus, Trash2 } from 'lucide-react'
 import PropertyCard from '@/components/shared/PropertyCard'
 import EmptyState from '@/components/shared/EmptyState'
 import StatusBadge from '@/components/shared/StatusBadge'
@@ -30,10 +30,11 @@ const AIDE_MODERATION = {
 
 export default function MesLogementsPage() {
   const navigate = useNavigate()
+  const [currentPage, setCurrentPage] = useState(1)
 
   const { data, setData, loading, error, reload } = useApiResource(
-    () => propertyService.listMesAnnonces(),
-    [],
+    () => propertyService.listMesAnnonces({ page: currentPage, perPage: 50 }),
+    [currentPage],
     { initialData: { items: [], meta: null } }
   )
 
@@ -47,8 +48,17 @@ export default function MesLogementsPage() {
     setActionError(null)
     try {
       await propertyService.remove(aSupprimer.id)
-      setData((prev) => ({ ...prev, items: prev.items.filter((l) => l.id !== aSupprimer.id) }))
       setASupprimer(null)
+      const actualise = await reload()
+
+      if (currentPage > 1 && actualise?.meta) {
+        const pageValide = Math.max(1, Math.min(currentPage, actualise.meta.last_page || 1))
+        if (actualise.items.length === 0 || pageValide !== currentPage) {
+          setCurrentPage(pageValide === currentPage ? currentPage - 1 : pageValide)
+        }
+      } else if (currentPage > 1 && actualise?.items?.length === 0) {
+        setCurrentPage((page) => Math.max(1, page - 1))
+      }
     } catch (err) {
       setActionError(err.message)
     } finally {
@@ -104,7 +114,7 @@ export default function MesLogementsPage() {
           />
         )}
 
-        {logements.length > 0 && (
+        {!loading && logements.length > 0 && (
           <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {logements.map((l) => (
               <PropertyCard
@@ -153,6 +163,30 @@ export default function MesLogementsPage() {
                 }
               />
             ))}
+          </div>
+        )}
+
+        {!loading && !error && logements.length > 0 && data.meta && data.meta.last_page > 1 && (
+          <div className="flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={data.meta.current_page <= 1 || suppressionEnCours}
+              onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}
+            >
+              <ChevronLeft className="h-4 w-4" /> Précédent
+            </Button>
+            <p className="text-sm text-ink-500">
+              Page {data.meta.current_page} sur {data.meta.last_page} — {data.meta.total} logement{data.meta.total > 1 ? 's' : ''} au total
+            </p>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={data.meta.current_page >= data.meta.last_page || suppressionEnCours}
+              onClick={() => setCurrentPage((page) => page + 1)}
+            >
+              Suivant <ChevronRight className="h-4 w-4" />
+            </Button>
           </div>
         )}
       </div>
