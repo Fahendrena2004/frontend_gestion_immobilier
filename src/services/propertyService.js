@@ -130,7 +130,7 @@ export const propertyService = {
   /** Annonces du propriétaire connecté, tous statuts de modération confondus. */
   async listMesAnnonces(filters = {}) {
     const params = { per_page: filters.perPage || 50 }
-    if (filters.page) params.page = filters.page
+    params.page = Math.max(1, Number(filters.page) || 1)
     if (filters.statut) params.statut = String(filters.statut).toLowerCase()
     if (filters.statutModeration) params.statut_moderation = String(filters.statutModeration).toLowerCase()
 

@@ -1,7 +1,8 @@
 import { useState } from 'react'
-import { Users } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Users } from 'lucide-react'
 import { Table, Thead, Th, Tr, Td } from '@/components/ui/Table'
 import Button from '@/components/ui/Button'
+import Dialog from '@/components/ui/Dialog'
 import Input from '@/components/ui/Input'
 import Select from '@/components/ui/Select'
 import Avatar from '@/components/ui/Avatar'
@@ -26,19 +27,21 @@ export default function GestionComptesPage() {
 
   const [roleFilter, setRoleFilter] = useState('')
   const [recherche, setRecherche] = useState('')
+  const [page, setPage] = useState(1)
   const rechercheDifferee = useDebouncedValue(recherche, 300)
 
   // Le filtrage et la recherche sont effectués par l'API, sur l'ensemble des
   // comptes et non sur la page affichée.
   const { data, setData, loading, error, reload } = useApiResource(
-    () => adminService.listUsers({ role: roleFilter, search: rechercheDifferee }),
-    [roleFilter, rechercheDifferee],
+    () => adminService.listUsers({ role: roleFilter, search: rechercheDifferee, page }),
+    [roleFilter, rechercheDifferee, page],
     { initialData: { items: [], meta: null } }
   )
 
   const users = data.items
   const [actionEnCours, setActionEnCours] = useState(null)
   const [actionError, setActionError] = useState(null)
+  const [confirmation, setConfirmation] = useState(null) // compte à suspendre
 
   async function basculerStatut(utilisateur) {
     const nouveau = utilisateur.statut === 'ACTIF' ? 'SUSPENDU' : 'ACTIF'
@@ -51,11 +54,19 @@ export default function GestionComptesPage() {
         ...prev,
         items: prev.items.map((u) => (u.id === utilisateur.id ? { ...u, statut: misAJour.statut } : u)),
       }))
+      setConfirmation(null)
     } catch (err) {
       setActionError(err.message)
     } finally {
       setActionEnCours(null)
     }
+  }
+
+  /** La suspension révoque les sessions : elle demande confirmation.
+   *  La réaction est sans risque et s'effectue directement. */
+  function demanderAction(utilisateur) {
+    if (utilisateur.statut === 'ACTIF') setConfirmation(utilisateur)
+    else basculerStatut(utilisateur)
   }
 
   return (
@@ -72,13 +83,13 @@ export default function GestionComptesPage() {
             label="Rechercher"
             placeholder="Nom ou e-mail"
             value={recherche}
-            onChange={(e) => setRecherche(e.target.value)}
+            onChange={(e) => { setRecherche(e.target.value); setPage(1) }}
             className="sm:w-56"
           />
           <Select
             label="Rôle"
             value={roleFilter}
-            onChange={(e) => setRoleFilter(e.target.value)}
+            onChange={(e) => { setRoleFilter(e.target.value); setPage(1) }}
             className="sm:w-48"
           >
             <option value="">Tous les rôles</option>
@@ -95,7 +106,7 @@ export default function GestionComptesPage() {
             <Button variant="outline" size="sm" className="mt-2" onClick={reload}>Réessayer</Button>
           </Alert>
         )}
-        {actionError && <Alert message={actionError} />}
+        {actionError && !confirmation && <Alert message={actionError} />}
 
         {loading && <LoadingState label="Chargement des comptes…" />}
 
@@ -140,7 +151,7 @@ export default function GestionComptesPage() {
                           size="sm"
                           variant={u.statut === 'ACTIF' ? 'danger' : 'outline'}
                           disabled={actionEnCours === u.id}
-                          onClick={() => basculerStatut(u)}
+                          onClick={() => demanderAction(u)}
                         >
                           {actionEnCours === u.id
                             ? '…'
@@ -158,7 +169,56 @@ export default function GestionComptesPage() {
             </tbody>
           </Table>
         )}
+
+        {!loading && !error && users.length > 0 && data.meta && data.meta.last_page > 1 && (
+          <div className="flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={data.meta.current_page <= 1 || !!actionEnCours}
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+            >
+              <ChevronLeft className="h-4 w-4" /> Précédent
+            </Button>
+            <p className="text-sm text-ink-500">
+              Page {data.meta.current_page} sur {data.meta.last_page}
+            </p>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={data.meta.current_page >= data.meta.last_page || !!actionEnCours}
+              onClick={() => setPage((p) => p + 1)}
+            >
+              Suivant <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
+        )}
       </div>
+
+      <Dialog
+        open={!!confirmation}
+        onClose={() => setConfirmation(null)}
+        title="Suspendre ce compte ?"
+        description={confirmation ? `${confirmation.nom} — ${confirmation.email}` : ''}
+        footer={
+          <>
+            <Button variant="outline" onClick={() => setConfirmation(null)} disabled={actionEnCours === confirmation?.id}>
+              Annuler
+            </Button>
+            <Button variant="danger" onClick={() => confirmation && basculerStatut(confirmation)} disabled={actionEnCours === confirmation?.id}>
+              {actionEnCours === confirmation?.id ? 'Suspension…' : 'Suspendre'}
+            </Button>
+          </>
+        }
+      >
+        <div className="flex flex-col gap-3">
+          {actionError && <Alert message={actionError} />}
+          <p className="text-sm text-ink-600">
+            Toutes les sessions actives de l'utilisateur seront révoquées. Il ne pourra plus se
+            connecter tant que le compte n'est pas réactivé.
+          </p>
+        </div>
+      </Dialog>
     </div>
   )
 }
