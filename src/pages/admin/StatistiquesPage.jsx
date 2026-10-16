@@ -1,3 +1,4 @@
+import { BarChart3, Building2, ClipboardCheck, Home, KeyRound, TrendingUp, Wallet } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card'
 import Button from '@/components/ui/Button'
 import Alert from '@/components/shared/Alert'
@@ -32,31 +33,46 @@ export default function StatistiquesPage() {
     []
   )
 
-  if (loading) return <LoadingState label="Calcul des statistiques…" />
+  if (loading) return <LoadingState label="Calcul des statistiques…" className="rounded-xl border border-ink-100 bg-white py-12" />
 
   if (error || !stats) {
     return (
       <Alert title="Impossible de charger les statistiques" message={error}>
-        <Button variant="outline" size="sm" className="mt-2" onClick={reload}>Réessayer</Button>
+        <Button variant="outline" size="sm" className="mt-2 rounded-lg" onClick={reload}>Réessayer</Button>
       </Alert>
     )
   }
 
   return (
-    <div>
-      <h1 className="font-display text-2xl font-bold text-ink-900">Statistiques</h1>
-      <p className="mt-1 text-sm text-ink-500">Activité globale de la plateforme.</p>
+    <div className="space-y-5">
+      {/* En-tête */}
+      <header className="rounded-xl border border-ink-100 bg-white p-5 shadow-sm sm:p-6">
+        <div className="flex items-start gap-4">
+          <span className="mt-0.5 flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-brand-700 shadow-md shadow-brand-900/20">
+            <BarChart3 className="h-5 w-5 text-gold-300" aria-hidden="true" />
+          </span>
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-widest text-gold-600">
+              Administration
+            </p>
+            <h1 className="mt-0.5 font-display text-2xl font-bold tracking-tight text-brand-800">
+              Statistiques
+            </h1>
+            <p className="mt-1 text-sm text-ink-500">Activité globale de la plateforme.</p>
+          </div>
+        </div>
+      </header>
 
-      <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        <MetricCard label="Logements au total" value={stats.totalLogements} />
-        <MetricCard label="Logements disponibles" value={stats.logementsDisponibles} />
-        <MetricCard label="Locations en cours" value={stats.totalLocations} />
-        <MetricCard label="Annonces à modérer" value={stats.annoncesAModerer} />
-        <MetricCard label="Paiements à vérifier" value={stats.paiementsEnAttenteVerification} />
-        <MetricCard label="Revenus encaissés ce mois" value={formatMoney(stats.revenusDuMois)} />
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <MetricCard icon={Building2} label="Logements au total" value={stats.totalLogements} />
+        <MetricCard icon={Home} label="Logements disponibles" value={stats.logementsDisponibles} />
+        <MetricCard icon={KeyRound} label="Locations en cours" value={stats.totalLocations} />
+        <MetricCard icon={ClipboardCheck} label="Annonces à modérer" value={stats.annoncesAModerer} />
+        <MetricCard icon={Wallet} label="Paiements à vérifier" value={stats.paiementsEnAttenteVerification} />
+        <MetricCard icon={TrendingUp} label="Revenus encaissés ce mois" value={formatMoney(stats.revenusDuMois)} />
       </div>
 
-      <div className="mt-8 grid grid-cols-1 gap-6 lg:grid-cols-2">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <BarChartCard
           titre="Demandes de location (6 derniers mois)"
           series={stats.evolutionDemandes}
@@ -69,7 +85,7 @@ export default function StatistiquesPage() {
         />
       </div>
 
-      <div className="mt-8 grid grid-cols-1 gap-6 lg:grid-cols-3">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <RepartitionCard
           titre="Comptes par rôle"
           data={stats.usersParRole}
@@ -93,12 +109,19 @@ export default function StatistiquesPage() {
   )
 }
 
-function MetricCard({ label, value }) {
+function MetricCard({ icon: Icon, label, value }) {
   return (
-    <Card>
-      <CardContent>
-        <p className="text-xs font-medium uppercase tracking-wide text-ink-400">{label}</p>
-        <p className="mt-2 font-display text-2xl font-bold text-ink-900">{value}</p>
+    <Card className="rounded-xl transition-shadow duration-150 hover:shadow-md">
+      <CardContent className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="text-xs font-semibold uppercase tracking-wide text-gold-600">{label}</p>
+          <p className="mt-2 font-display text-3xl font-bold tabular-nums text-brand-800">{value}</p>
+        </div>
+        {Icon && (
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-brand-50">
+            <Icon className="h-5 w-5 text-brand-600" aria-hidden="true" />
+          </span>
+        )}
       </CardContent>
     </Card>
   )
@@ -110,8 +133,10 @@ function BarChartCard({ titre, series, formatValeur }) {
   const max = Math.max(0, ...valeurs)
 
   return (
-    <Card>
-      <CardHeader><CardTitle>{titre}</CardTitle></CardHeader>
+    <Card className="rounded-xl">
+      <CardHeader className="border-b-2 border-gold-500/30">
+        <CardTitle className="text-brand-800">{titre}</CardTitle>
+      </CardHeader>
       <CardContent>
         {series.length === 0 || max === 0 ? (
           <p className="py-10 text-center text-sm text-ink-500">
@@ -144,8 +169,10 @@ function RepartitionCard({ titre, data, labels, total }) {
   const entrees = Object.entries(data || {})
 
   return (
-    <Card>
-      <CardHeader><CardTitle>{titre}</CardTitle></CardHeader>
+    <Card className="rounded-xl">
+      <CardHeader className="border-b-2 border-gold-500/30">
+        <CardTitle className="text-brand-800">{titre}</CardTitle>
+      </CardHeader>
       <CardContent className="flex flex-col gap-3">
         {entrees.length === 0 && <p className="text-sm text-ink-500">Aucune donnée.</p>}
         {entrees.map(([cle, valeur]) => {
@@ -154,10 +181,10 @@ function RepartitionCard({ titre, data, labels, total }) {
             <div key={cle}>
               <div className="flex items-center justify-between text-sm">
                 <span className="text-ink-600">{labels[cle] ?? cle}</span>
-                <span className="font-medium text-ink-900">{valeur}</span>
+                <span className="font-medium tabular-nums text-ink-900">{valeur}</span>
               </div>
               <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-ink-100">
-                <div className="h-full rounded-full bg-brand-500" style={{ width: `${pourcentage}%` }} />
+                <div className="h-full rounded-full bg-gradient-to-r from-brand-600 to-gold-400" style={{ width: `${pourcentage}%` }} />
               </div>
             </div>
           )

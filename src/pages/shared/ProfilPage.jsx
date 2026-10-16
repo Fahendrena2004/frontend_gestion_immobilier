@@ -111,13 +111,25 @@ export default function ProfilPage() {
   }
 
   return (
-    <div className="mx-auto max-w-3xl">
-      <div className="mb-8">
-        <h1 className="font-display text-2xl font-bold text-ink-900 lg:text-3xl">Mon profil</h1>
-        <p className="mt-2 text-ink-500">Gérez vos informations personnelles et votre sécurité.</p>
-      </div>
+    <div className="mx-auto max-w-3xl space-y-5">
+      <header className="rounded-xl border border-ink-100 bg-white p-5 shadow-sm sm:p-6">
+        <div className="flex items-start gap-4">
+          <span className="mt-0.5 flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-brand-700 shadow-md shadow-brand-900/20">
+            <User className="h-5 w-5 text-gold-300" aria-hidden="true" />
+          </span>
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-widest text-gold-600">
+              Mon compte
+            </p>
+            <h1 className="mt-0.5 font-display text-2xl font-bold tracking-tight text-brand-800">
+              Mon profil
+            </h1>
+            <p className="mt-1 text-sm text-ink-500">Gérez vos informations personnelles et votre sécurité.</p>
+          </div>
+        </div>
+      </header>
 
-      <div className="mb-6 border-b border-ink-200">
+      <div className="border-b-2 border-gold-500/30">
         <nav className="flex gap-8" aria-label="Sections du profil">
           <Onglet
             actif={activeTab === 'profil'}
@@ -135,10 +147,10 @@ export default function ProfilPage() {
       </div>
 
       {activeTab === 'profil' && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <User className="h-5 w-5 text-brand-600" /> Informations personnelles
+        <Card className="rounded-xl">
+          <CardHeader className="border-b-2 border-gold-500/30">
+            <CardTitle className="flex items-center gap-2 text-brand-800">
+              <User className="h-5 w-5 text-gold-600" /> Informations personnelles
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -203,7 +215,7 @@ export default function ProfilPage() {
                 <p className="mt-1">Rôle : {ROLE_LABEL[role] ?? '—'}</p>
               </div>
 
-              <Button type="submit" size="lg" disabled={saving} className="w-full sm:w-auto">
+              <Button type="submit" size="lg" disabled={saving} className="w-full rounded-lg shadow-sm sm:w-auto">
                 {saving ? 'Enregistrement…' : 'Enregistrer les modifications'}
               </Button>
             </form>
@@ -212,10 +224,10 @@ export default function ProfilPage() {
       )}
 
       {activeTab === 'securite' && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Lock className="h-5 w-5 text-brand-600" /> Sécurité du compte
+        <Card className="rounded-xl">
+          <CardHeader className="border-b-2 border-gold-500/30">
+            <CardTitle className="flex items-center gap-2 text-brand-800">
+              <Lock className="h-5 w-5 text-gold-600" /> Sécurité du compte
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -257,7 +269,7 @@ export default function ProfilPage() {
               {pwdError && <Alert message={pwdError} />}
               {pwdSuccess && <Alert variant="success" message="Mot de passe modifié avec succès." />}
 
-              <Button type="submit" size="lg" disabled={pwdSaving} className="w-full sm:w-auto">
+              <Button type="submit" size="lg" disabled={pwdSaving} className="w-full rounded-lg shadow-sm sm:w-auto">
                 {pwdSaving ? 'Modification…' : 'Modifier le mot de passe'}
               </Button>
             </form>
@@ -275,7 +287,7 @@ function Onglet({ actif, icon: Icon, label, onClick }) {
       onClick={onClick}
       aria-current={actif ? 'page' : undefined}
       className={`flex items-center gap-2 border-b-2 px-4 py-3 text-sm font-medium transition-colors ${
-        actif ? 'border-brand-600 text-brand-700' : 'border-transparent text-ink-500 hover:text-ink-700'
+        actif ? 'border-gold-500 text-brand-800' : 'border-transparent text-ink-500 hover:text-ink-700'
       }`}
     >
       <Icon className="h-4 w-4" /> {label}

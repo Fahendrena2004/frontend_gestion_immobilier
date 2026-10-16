@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
-import { Home, LogIn, Mail, Lock, Eye, EyeOff } from 'lucide-react'
+import { Home, LogIn, Mail, Lock, Eye, EyeOff, MapPin, ArrowLeft } from 'lucide-react'
 import Button from '@/components/ui/Button'
 import { useAuth } from '@/context/AuthContext'
 
@@ -35,48 +35,65 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-ink-50">
-      {/* Split screen - visual side (desktop only) */}
-      <aside className="hidden lg:block lg:w-[45%] lg:min-h-screen lg:flex lg:items-center lg:justify-center lg:p-12 lg:fixed lg:inset-y-0 lg:left-0">
-        <div className="w-full max-w-lg text-center">
-          <div className="mx-auto mb-10 w-24 h-24 rounded-2xl bg-gradient-to-br from-brand-600 to-brand-800 flex items-center justify-center shadow-xl">
-            <Home className="h-12 w-12 text-gold-300" />
-          </div>
-          <h2 className="font-display text-3xl lg:text-4xl font-bold text-ink-900 tracking-tight mb-4">
-            Toko<span className="text-gold-500">Fianar</span>
-          </h2>
-          <p className="text-lg text-ink-500 mb-8 max-w-md mx-auto leading-relaxed">
-            La plateforme de location de confiance à Fianarantsoa. Trouvez votre logement idéal ou gérez vos biens en toute sérénité.
+    <div className="min-h-screen bg-ink-50 lg:flex">
+      {/* ============================================================
+          Panneau visuel — desktop uniquement (même hero que HomePage)
+          ============================================================ */}
+      <aside className="relative hidden overflow-hidden bg-brand-900 lg:flex lg:w-1/2 lg:min-h-screen lg:flex-col lg:justify-between lg:p-12 xl:p-16">
+        <div
+          className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+          style={{ backgroundImage: 'url(https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=1920&q=80)' }}
+        />
+        <div className="absolute inset-0 bg-brand-900/70" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(189,143,52,0.18),transparent_55%)]" />
+
+        {/* Logo */}
+        <Link to="/" className="animate-fade-in-up relative flex w-fit items-center gap-2.5">
+          <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-brand-700">
+            <Home className="h-5 w-5 text-gold-300" />
+          </span>
+          <span className="font-display text-xl font-bold text-white">
+            Toko<span className="text-gold-400">Fianar</span>
+          </span>
+        </Link>
+
+        {/* Accroche */}
+        <div className="relative max-w-lg">
+          <p className="animate-fade-in-up flex items-center gap-2 text-sm font-medium text-gold-300">
+            <MapPin className="h-4 w-4" /> Fianarantsoa, Madagascar
           </p>
-          <div className="grid grid-cols-3 gap-4 text-center">
-            <div className="rounded-xl border border-ink-100 bg-ink-50 p-4">
-              <p className="text-sm font-semibold text-brand-700">Centralisé</p>
-              <p className="mt-1 text-xs text-ink-500">Toutes les annonces au même endroit</p>
-            </div>
-            <div className="rounded-xl border border-ink-100 bg-ink-50 p-4">
-              <p className="text-sm font-semibold text-brand-700">Vérifié</p>
-              <p className="mt-1 text-xs text-ink-500">Annonces modérées avant publication</p>
-            </div>
-            <div className="rounded-xl border border-ink-100 bg-ink-50 p-4">
-              <p className="text-sm font-semibold text-brand-700">Suivi</p>
-              <p className="mt-1 text-xs text-ink-500">Contrats, factures et quittances</p>
-            </div>
-          </div>
+          <h2 className="animate-fade-in-up animate-delay-100 mt-4 font-display text-3xl font-bold leading-tight tracking-tight text-white xl:text-4xl">
+            Trouvez votre prochain logement à Fianarantsoa.
+          </h2>
+          <p className="animate-fade-in-up animate-delay-200 mt-4 text-base leading-relaxed text-brand-100/80">
+            Toutes les annonces vérifiées de Fianarantsoa, centralisées en un seul endroit —
+            recherchez, visitez et louez en toute transparence.
+          </p>
         </div>
       </aside>
 
-      {/* Form side */}
-      <main className="lg:w-[55%] lg:ml-[45%] lg:min-h-screen lg:flex lg:items-center lg:justify-center lg:p-8 min-h-screen flex items-center justify-center px-4 py-12">
+      {/* ============================================================
+          Formulaire
+          ============================================================ */}
+      <main className="flex min-h-screen items-center justify-center px-4 py-12 sm:px-6 lg:w-1/2 lg:px-12 xl:px-16">
         <div className="w-full max-w-md">
-          <div className="lg:hidden mb-8 text-center">
-            <div className="mx-auto mb-6 w-16 h-16 rounded-2xl bg-gradient-to-br from-brand-600 to-brand-800 flex items-center justify-center shadow-lg">
-              <Home className="h-8 w-8 text-gold-300" />
-            </div>
-            <h1 className="font-display text-2xl font-bold text-ink-900">Toko<span className="text-gold-500">Fianar</span></h1>
+          {/* Bandeau compact — mobile uniquement */}
+          <div className="animate-fade-in-up mb-10 text-center lg:hidden">
+            <Link to="/" className="inline-flex items-center gap-2.5">
+              <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-brand-700">
+                <Home className="h-5 w-5 text-gold-300" />
+              </span>
+              <span className="font-display text-xl font-bold text-ink-900">
+                Toko<span className="text-gold-600">Fianar</span>
+              </span>
+            </Link>
+            <p className="mx-auto mt-4 max-w-xs text-sm leading-relaxed text-ink-500">
+              Trouvez votre prochain logement à Fianarantsoa.
+            </p>
           </div>
 
-          <div className="text-center mb-8">
-            <h1 className="font-display text-2xl lg:text-3xl font-bold text-ink-900">Bonjour !</h1>
+          <div className="animate-fade-in-up animate-delay-100 mb-8">
+            <h1 className="font-display text-2xl font-bold text-ink-900 lg:text-3xl">Bonjour !</h1>
             <p className="mt-2 text-ink-500">Connectez-vous pour accéder à votre espace</p>
           </div>
 
@@ -103,7 +120,7 @@ export default function LoginPage() {
                   value={form.email}
                   onChange={(e) => setForm({ ...form, email: e.target.value })}
                   placeholder="vous@exemple.mg"
-                  className="w-full pl-10 pr-4 py-3 rounded-lg border border-ink-200 bg-white text-ink-900 placeholder:text-ink-400 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-colors disabled:bg-ink-50 disabled:cursor-not-allowed"
+                  className="w-full rounded-lg border border-ink-200 bg-white py-3 pl-10 pr-4 text-ink-900 placeholder:text-ink-400 transition-shadow duration-150 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/30 disabled:cursor-not-allowed disabled:bg-ink-50"
                   disabled={loading}
                 />
               </div>
@@ -124,7 +141,7 @@ export default function LoginPage() {
                   value={form.password}
                   onChange={(e) => setForm({ ...form, password: e.target.value })}
                   placeholder="••••••••"
-                  className="w-full pl-10 pr-12 py-3 rounded-lg border border-ink-200 bg-white text-ink-900 placeholder:text-ink-400 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-colors disabled:bg-ink-50 disabled:cursor-not-allowed"
+                  className="w-full rounded-lg border border-ink-200 bg-white py-3 pl-10 pr-12 text-ink-900 placeholder:text-ink-400 transition-shadow duration-150 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/30 disabled:cursor-not-allowed disabled:bg-ink-50"
                   disabled={loading}
                 />
                 <button
@@ -156,21 +173,20 @@ export default function LoginPage() {
             </Button>
           </form>
 
-          <div className="mt-6">
-            <div className="relative mb-4">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-ink-200" />
-              </div>
-              <div className="relative flex justify-center text-xs">
-                <span className="px-3 bg-ink-50 text-ink-400">Ou</span>
-              </div>
-            </div>
-            <p className="text-center text-sm text-ink-500">
+          <div className="animate-fade-in-up animate-delay-200 mt-8 text-center">
+            <p className="text-sm text-ink-500">
               Pas encore de compte ?{' '}
               <Link to="/inscription" className="font-medium text-brand-600 hover:text-brand-700 underline underline-offset-2 transition-colors">
                 Créer un compte
               </Link>
             </p>
+            <Link
+              to="/"
+              className="mt-4 inline-flex items-center gap-1.5 text-sm text-ink-400 hover:text-ink-600 transition-colors"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Retour à l'accueil
+            </Link>
           </div>
         </div>
       </main>
