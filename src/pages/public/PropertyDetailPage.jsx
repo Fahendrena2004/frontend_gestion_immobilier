@@ -345,7 +345,7 @@ function Gallery({ photos, index, onIndexChange, fallbackLabel, titre }) {
                 (i === index ? 'border-brand-600' : 'border-transparent hover:border-ink-200')
               }
             >
-              <img src={photo.url} alt="" className="h-full w-full object-cover" />
+              <img src={photo.url} alt="" className="h-full w-full object-cover" loading="lazy" decoding="async" />
             </button>
           ))}
         </div>
