@@ -21,9 +21,19 @@ export function Th({ className, children }) {
 }
 
 export function Tr({ className, children }) {
-  return <tr className={cn('border-b border-ink-100 last:border-0 hover:bg-ink-50/60', className)}>{children}</tr>
+  return (
+    <tr className={cn('border-b border-ink-100 last:border-0 hover:bg-ink-50/60', className)}>
+      {children}
+    </tr>
+  )
 }
 
-export function Td({ className, children }) {
-  return <td className={cn('px-4 py-3 text-ink-700', className)}>{children}</td>
+export function Td({ className, children, colSpan }) {
+  return (
+    <td colSpan={colSpan} className={cn('px-4 py-3 text-ink-700', className)}>
+      {children}
+    </td>
+  )
 }
+
+export default Table

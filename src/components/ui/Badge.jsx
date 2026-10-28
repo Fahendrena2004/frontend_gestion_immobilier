@@ -8,12 +8,12 @@ const VARIANTS = {
   neutral: 'bg-ink-100 text-ink-700',
 }
 
-export default function Badge({ variant = 'neutral', className, children }) {
+export function Badge({ variant = 'neutral', className, children }) {
   return (
     <span
       className={cn(
         'inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium',
-        VARIANTS[variant],
+        VARIANTS[variant] ?? VARIANTS.neutral,
         className
       )}
     >
@@ -21,3 +21,5 @@ export default function Badge({ variant = 'neutral', className, children }) {
     </span>
   )
 }
+
+export default Badge

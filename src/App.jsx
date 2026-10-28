@@ -1,34 +1,41 @@
+import { lazy, Suspense } from 'react'
 import { Routes, Route } from 'react-router-dom'
 
+import LoadingState from '@/components/shared/LoadingState'
 import PublicLayout from '@/components/layout/PublicLayout'
 import DashboardLayout from '@/components/layout/DashboardLayout'
 import ProtectedRoute from '@/components/shared/ProtectedRoute'
 
 import HomePage from '@/pages/public/HomePage'
-import PropertyDetailPage from '@/pages/public/PropertyDetailPage'
-import LoginPage from '@/pages/auth/LoginPage'
-import RegisterPage from '@/pages/auth/RegisterPage'
 
-import LocataireDashboard from '@/pages/locataire/LocataireDashboard'
-import MesDemandesPage from '@/pages/locataire/MesDemandesPage'
-import MesVisitesPage from '@/pages/locataire/MesVisitesPage'
-import MaLocationPage from '@/pages/locataire/MaLocationPage'
+const PropertyDetailPage = lazy(() => import('@/pages/public/PropertyDetailPage'))
+const LoginPage = lazy(() => import('@/pages/auth/LoginPage'))
+const RegisterPage = lazy(() => import('@/pages/auth/RegisterPage'))
 
-import ProprietaireDashboard from '@/pages/proprietaire/ProprietaireDashboard'
-import MesLogementsPage from '@/pages/proprietaire/MesLogementsPage'
-import LogementFormPage from '@/pages/proprietaire/LogementFormPage'
-import DemandesRecuesPage from '@/pages/proprietaire/DemandesRecuesPage'
-import VisitesPage from '@/pages/proprietaire/VisitesPage'
+const LocataireDashboard = lazy(() => import('@/pages/locataire/LocataireDashboard'))
+const MesDemandesPage = lazy(() => import('@/pages/locataire/MesDemandesPage'))
+const MesVisitesPage = lazy(() => import('@/pages/locataire/MesVisitesPage'))
+const MaLocationPage = lazy(() => import('@/pages/locataire/MaLocationPage'))
 
-import AdminDashboard from '@/pages/admin/AdminDashboard'
-import ModerationAnnoncesPage from '@/pages/admin/ModerationAnnoncesPage'
-import GestionComptesPage from '@/pages/admin/GestionComptesPage'
-import PaiementsVerificationPage from '@/pages/admin/PaiementsVerificationPage'
-import StatistiquesPage from '@/pages/admin/StatistiquesPage'
+const ProprietaireDashboard = lazy(() => import('@/pages/proprietaire/ProprietaireDashboard'))
+const MesLogementsPage = lazy(() => import('@/pages/proprietaire/MesLogementsPage'))
+const LogementFormPage = lazy(() => import('@/pages/proprietaire/LogementFormPage'))
+const DemandesRecuesPage = lazy(() => import('@/pages/proprietaire/DemandesRecuesPage'))
+const VisitesPage = lazy(() => import('@/pages/proprietaire/VisitesPage'))
+
+const AdminDashboard = lazy(() => import('@/pages/admin/AdminDashboard'))
+const ModerationAnnoncesPage = lazy(() => import('@/pages/admin/ModerationAnnoncesPage'))
+const ReferentielsPage = lazy(() => import('@/pages/admin/ReferentielsPage'))
+const GestionComptesPage = lazy(() => import('@/pages/admin/GestionComptesPage'))
+const PaiementsVerificationPage = lazy(() => import('@/pages/admin/PaiementsVerificationPage'))
+const StatistiquesPage = lazy(() => import('@/pages/admin/StatistiquesPage'))
+
+const ProfilPage = lazy(() => import('@/pages/shared/ProfilPage'))
 
 export default function App() {
   return (
-    <Routes>
+    <Suspense fallback={<LoadingState label="Chargement…" className="py-24" />}>
+      <Routes>
       {/* Espace public — visiteur (US-V-*) */}
       <Route element={<PublicLayout />}>
         <Route path="/" element={<HomePage />} />
@@ -52,6 +59,7 @@ export default function App() {
         <Route path="demandes" element={<MesDemandesPage />} />
         <Route path="visites" element={<MesVisitesPage />} />
         <Route path="location" element={<MaLocationPage />} />
+        <Route path="profil" element={<ProfilPage />} />
       </Route>
 
       {/* Espace propriétaire (US-P-*) */}
@@ -69,6 +77,7 @@ export default function App() {
         <Route path="logements/:id/modifier" element={<LogementFormPage />} />
         <Route path="demandes" element={<DemandesRecuesPage />} />
         <Route path="visites" element={<VisitesPage />} />
+        <Route path="profil" element={<ProfilPage />} />
       </Route>
 
       {/* Espace administrateur (US-A-*) */}
@@ -82,14 +91,17 @@ export default function App() {
       >
         <Route index element={<AdminDashboard />} />
         <Route path="moderation" element={<ModerationAnnoncesPage />} />
+        <Route path="referentiels" element={<ReferentielsPage />} />
         <Route path="comptes" element={<GestionComptesPage />} />
         <Route path="paiements" element={<PaiementsVerificationPage />} />
         <Route path="statistiques" element={<StatistiquesPage />} />
+        <Route path="profil" element={<ProfilPage />} />
       </Route>
 
       {/* 404 */}
       <Route path="*" element={<NotFound />} />
     </Routes>
+    </Suspense>
   )
 }
 

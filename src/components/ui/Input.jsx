@@ -1,7 +1,7 @@
 import { forwardRef } from 'react'
 import { cn } from '@/lib/utils'
 
-const Input = forwardRef(function Input({ className, label, error, id, ...props }, ref) {
+const Input = forwardRef(function Input({ className, label, error, hint, id, ...props }, ref) {
   const inputId = id || props.name
   return (
     <div className="flex flex-col gap-1.5">
@@ -13,18 +13,25 @@ const Input = forwardRef(function Input({ className, label, error, id, ...props 
       <input
         id={inputId}
         ref={ref}
+        aria-invalid={error ? 'true' : undefined}
         className={cn(
           'h-10 w-full rounded-md border border-ink-200 bg-white px-3 text-sm text-ink-900',
           'placeholder:text-ink-300 transition-colors',
           'focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100',
+          'disabled:cursor-not-allowed disabled:bg-ink-50 disabled:text-ink-500',
           error && 'border-brick-500 focus:border-brick-500 focus:ring-brick-50',
           className
         )}
         {...props}
       />
-      {error && <span className="text-xs text-brick-600">{error}</span>}
+      {error ? (
+        <span className="text-xs text-brick-600">{error}</span>
+      ) : (
+        hint && <span className="text-xs text-ink-500">{hint}</span>
+      )}
     </div>
   )
 })
 
+export { Input }
 export default Input

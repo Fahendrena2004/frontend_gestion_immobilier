@@ -31,6 +31,26 @@ export function formatDateTime(isoString) {
   return formatDate(isoString, { hour: '2-digit', minute: '2-digit' })
 }
 
+/** Affiche une date façon fil d'actualité ("Publié il y a N jours", etc.). */
+export function formatRelativeDate(isoString) {
+  if (!isoString) return '—'
+  const date = new Date(isoString)
+  const now = new Date()
+  const diffMs = now - date
+  const diffSec = Math.floor(diffMs / 1000)
+  const diffMin = Math.floor(diffSec / 60)
+  const diffH = Math.floor(diffMin / 60)
+  const diffDay = Math.floor(diffH / 24)
+
+  if (diffDay < 1) return "Publié aujourd'hui"
+  if (diffDay < 7) return `Publié il y a ${diffDay} jour${diffDay > 1 ? 's' : ''}`
+
+  const diffWeek = Math.floor(diffDay / 7)
+  if (diffWeek < 4) return `Publié il y a ${diffWeek} semaine${diffWeek > 1 ? 's' : ''}`
+
+  return `Publié le ${formatDate(isoString)}`
+}
+
 /** Initiales d'un nom complet, pour les avatars. */
 export function initials(name = '') {
   return name
