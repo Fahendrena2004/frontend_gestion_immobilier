@@ -16,6 +16,8 @@ export default function PropertyCard({ property, actions }) {
               src={property.photoPrincipale}
               alt={property.titre}
               className="h-full w-full object-cover"
+              loading="lazy"
+              decoding="async"
             />
           ) : (
             <span className="font-display text-sm font-medium tracking-wide text-brand-100/80">

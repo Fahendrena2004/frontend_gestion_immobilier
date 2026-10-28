@@ -120,7 +120,7 @@ export default function ProprietaireDashboard() {
                   <div className="flex min-w-0 items-center gap-4">
                     <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-brand-50">
                       {l.photoPrincipale ? (
-                        <img src={l.photoPrincipale} alt="" className="h-full w-full object-cover" />
+                        <img src={l.photoPrincipale} alt="" className="h-full w-full object-cover" loading="lazy" decoding="async" />
                       ) : (
                         <Building2 className="h-6 w-6 text-brand-600" />
                       )}
