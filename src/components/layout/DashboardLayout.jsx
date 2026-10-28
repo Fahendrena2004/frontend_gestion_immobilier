@@ -2,7 +2,7 @@ import { Outlet, useNavigate } from 'react-router-dom'
 import {
   LayoutDashboard, FileText, CalendarCheck, KeyRound,
   Users, ShieldCheck, BarChart3, Wallet, Building2, ClipboardList,
-  LogOut, User,
+  LogOut, User, ListChecks,
 } from 'lucide-react'
 import Sidebar from './Sidebar'
 import MobileTabBar from './MobileTabBar'
@@ -30,6 +30,7 @@ const NAV_BY_ROLE = {
   ADMINISTRATEUR: [
     { to: '/admin', label: 'Tableau de bord', icon: LayoutDashboard, end: true },
     { to: '/admin/moderation', label: 'Modération des annonces', icon: ShieldCheck },
+    { to: '/admin/referentiels', label: 'Référentiels', icon: ListChecks },
     { to: '/admin/comptes', label: 'Gestion des comptes', icon: Users },
     { to: '/admin/paiements', label: 'Vérification des paiements', icon: Wallet },
     { to: '/admin/statistiques', label: 'Statistiques', icon: BarChart3 },

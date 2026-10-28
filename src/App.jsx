@@ -22,6 +22,7 @@ import VisitesPage from '@/pages/proprietaire/VisitesPage'
 
 import AdminDashboard from '@/pages/admin/AdminDashboard'
 import ModerationAnnoncesPage from '@/pages/admin/ModerationAnnoncesPage'
+import ReferentielsPage from '@/pages/admin/ReferentielsPage'
 import GestionComptesPage from '@/pages/admin/GestionComptesPage'
 import PaiementsVerificationPage from '@/pages/admin/PaiementsVerificationPage'
 import StatistiquesPage from '@/pages/admin/StatistiquesPage'
@@ -86,6 +87,7 @@ export default function App() {
       >
         <Route index element={<AdminDashboard />} />
         <Route path="moderation" element={<ModerationAnnoncesPage />} />
+        <Route path="referentiels" element={<ReferentielsPage />} />
         <Route path="comptes" element={<GestionComptesPage />} />
         <Route path="paiements" element={<PaiementsVerificationPage />} />
         <Route path="statistiques" element={<StatistiquesPage />} />

@@ -95,8 +95,16 @@ function toLogementBody(payload) {
   if (payload.pieces !== undefined && payload.pieces !== '') body.nombre_pieces = Number(payload.pieces)
   if (payload.prix !== undefined && payload.prix !== '') body.loyer = Number(payload.prix)
   if (payload.caution !== undefined) body.caution = payload.caution === '' ? null : Number(payload.caution)
-  if (payload.quartierId) body.quartier_id = Number(payload.quartierId)
-  if (payload.typeLogementId) body.type_logement_id = Number(payload.typeLogementId)
+  if (payload.quartierId === '__autre__') {
+    body.quartier_autre = payload.quartierAutre ? payload.quartierAutre.trim() : ''
+  } else if (payload.quartierId) {
+    body.quartier_id = Number(payload.quartierId)
+  }
+  if (payload.typeLogementId === '__autre__') {
+    body.type_autre = payload.typeAutre ? payload.typeAutre.trim() : ''
+  } else if (payload.typeLogementId) {
+    body.type_logement_id = Number(payload.typeLogementId)
+  }
   if (payload.statut) body.statut = String(payload.statut).toLowerCase()
   if (Array.isArray(payload.equipements)) body.equipements = payload.equipements.map(Number)
   return body
@@ -148,11 +156,15 @@ export const propertyService = {
 
   async create(payload) {
     const { data } = await api.post('/logements', toLogementBody(payload))
+    quartiersCache = null
+    typesCache = null
     return mapLogement(data)
   },
 
   async update(id, payload) {
     const { data } = await api.put(`/logements/${id}`, toLogementBody(payload))
+    quartiersCache = null
+    typesCache = null
     return mapLogement(data)
   },
 
