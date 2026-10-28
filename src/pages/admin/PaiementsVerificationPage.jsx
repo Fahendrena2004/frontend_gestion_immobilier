@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { AlertTriangle, Check, ExternalLink, Wallet, X } from 'lucide-react'
+import { AlertTriangle, Check, ChevronLeft, ChevronRight, ExternalLink, Wallet, X } from 'lucide-react'
 import { Table, Thead, Th, Tr, Td } from '@/components/ui/Table'
 import Button from '@/components/ui/Button'
 import Dialog from '@/components/ui/Dialog'
@@ -11,11 +11,15 @@ import { financeService } from '@/services/financeService'
 import { formatMoney, formatDate } from '@/lib/utils'
 
 export default function PaiementsVerificationPage() {
-  const { data: paiements, setData: setPaiements, loading, error, reload } = useApiResource(
-    () => financeService.listPaiementsAVerifier(),
-    [],
-    { initialData: [] }
+  const [page, setPage] = useState(1)
+
+  const { data, setData, loading, error, reload } = useApiResource(
+    () => financeService.listPaiementsAVerifier(page),
+    [page],
+    { initialData: { items: [], meta: null } }
   )
+
+  const paiements = data.items
 
   const [confirmation, setConfirmation] = useState(null) // { paiement, decision }
   const [actionEnCours, setActionEnCours] = useState(false)
@@ -28,8 +32,12 @@ export default function PaiementsVerificationPage() {
     setActionError(null)
     try {
       await financeService.verifierPaiement(paiement.id, decision)
-      setPaiements((prev) => prev.filter((p) => p.id !== paiement.id))
       setConfirmation(null)
+      if (paiements.length === 1 && page > 1) {
+        setPage((p) => p - 1)
+      } else {
+        reload()
+      }
     } catch (err) {
       setActionError(err.message)
     } finally {
@@ -142,6 +150,32 @@ export default function PaiementsVerificationPage() {
             </tbody>
           </Table>
         </div>
+        )}
+
+        {!loading && !error && data.meta && data.meta.last_page > 1 && (
+          <div className="flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
+            <Button
+              variant="outline"
+              size="sm"
+              className="rounded-lg"
+              disabled={data.meta.current_page <= 1 || actionEnCours}
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+            >
+              <ChevronLeft className="h-4 w-4" /> Précédent
+            </Button>
+            <p className="rounded-full border border-ink-200 bg-white px-4 py-1 text-sm font-medium text-ink-700">
+              Page {data.meta.current_page} sur {data.meta.last_page} — {data.meta.total} paiement{data.meta.total > 1 ? 's' : ''} au total
+            </p>
+            <Button
+              variant="outline"
+              size="sm"
+              className="rounded-lg"
+              disabled={data.meta.current_page >= data.meta.last_page || actionEnCours}
+              onClick={() => setPage((p) => p + 1)}
+            >
+              Suivant <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
         )}
       </div>
 

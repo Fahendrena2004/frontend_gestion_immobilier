@@ -15,7 +15,9 @@ const MAX_PHOTOS = 6
 const EMPTY_FORM = {
   titre: '',
   quartierId: '',
+  quartierAutre: '',
   typeLogementId: '',
+  typeAutre: '',
   prix: '',
   pieces: 1,
   surface: '',
@@ -66,7 +68,9 @@ export default function LogementFormPage() {
           setForm({
             titre: logement.titre ?? '',
             quartierId: logement.quartierId ?? '',
+            quartierAutre: '',
             typeLogementId: logement.typeLogementId ?? '',
+            typeAutre: '',
             prix: logement.prix ?? '',
             pieces: logement.pieces ?? 1,
             surface: logement.surface ?? '',
@@ -105,7 +109,18 @@ export default function LogementFormPage() {
 
   function setChamp(champ, valeur) {
     setForm((f) => ({ ...f, [champ]: valeur }))
-    setFieldErrors((e) => (e[champ] ? { ...e, [champ]: null } : e))
+    setFieldErrors((e) => {
+      const maj = { ...e, [champ]: null }
+      if (champ === 'quartierId' || champ === 'quartierAutre') {
+        maj.quartier_id = null
+        maj.quartier_autre = null
+      }
+      if (champ === 'typeLogementId' || champ === 'typeAutre') {
+        maj.type_logement_id = null
+        maj.type_autre = null
+      }
+      return maj
+    })
   }
 
   function toggleEquipement(equipementId) {
@@ -266,31 +281,59 @@ export default function LogementFormPage() {
               />
             </div>
 
-            <Select
-              label="Quartier *"
-              required
-              value={form.quartierId}
-              error={fieldErrors.quartier_id}
-              onChange={(e) => setChamp('quartierId', e.target.value)}
-            >
-              <option value="">Sélectionner un quartier</option>
-              {referentiels.quartiers.map((q) => (
-                <option key={q.id} value={q.id}>{q.nom}</option>
-              ))}
-            </Select>
+            <div className="flex flex-col gap-4">
+              <Select
+                label="Quartier *"
+                required
+                value={form.quartierId}
+                error={form.quartierId === '__autre__' ? undefined : fieldErrors.quartier_id}
+                onChange={(e) => setChamp('quartierId', e.target.value)}
+              >
+                <option value="">Sélectionner un quartier</option>
+                {referentiels.quartiers.map((q) => (
+                  <option key={q.id} value={q.id}>{q.nom}</option>
+                ))}
+                <option value="__autre__">Autre (préciser)…</option>
+              </Select>
 
-            <Select
-              label="Type de logement *"
-              required
-              value={form.typeLogementId}
-              error={fieldErrors.type_logement_id}
-              onChange={(e) => setChamp('typeLogementId', e.target.value)}
-            >
-              <option value="">Sélectionner un type</option>
-              {referentiels.types.map((t) => (
-                <option key={t.id} value={t.id}>{t.libelle}</option>
-              ))}
-            </Select>
+              {form.quartierId === '__autre__' && (
+                <Input
+                  label="Précisez le quartier *"
+                  required
+                  value={form.quartierAutre}
+                  error={fieldErrors.quartier_autre || fieldErrors.quartier_id}
+                  onChange={(e) => setChamp('quartierAutre', e.target.value)}
+                  placeholder="ex : Ambalapaiso"
+                />
+              )}
+            </div>
+
+            <div className="flex flex-col gap-4">
+              <Select
+                label="Type de logement *"
+                required
+                value={form.typeLogementId}
+                error={form.typeLogementId === '__autre__' ? undefined : fieldErrors.type_logement_id}
+                onChange={(e) => setChamp('typeLogementId', e.target.value)}
+              >
+                <option value="">Sélectionner un type</option>
+                {referentiels.types.map((t) => (
+                  <option key={t.id} value={t.id}>{t.libelle}</option>
+                ))}
+                <option value="__autre__">Autre (préciser)…</option>
+              </Select>
+
+              {form.typeLogementId === '__autre__' && (
+                <Input
+                  label="Précisez le type de logement *"
+                  required
+                  value={form.typeAutre}
+                  error={fieldErrors.type_autre || fieldErrors.type_logement_id}
+                  onChange={(e) => setChamp('typeAutre', e.target.value)}
+                  placeholder="ex : Loft, Duplex..."
+                />
+              )}
+            </div>
 
             <Input
               label="Loyer mensuel (Ar) *"

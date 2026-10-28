@@ -88,4 +88,31 @@ export const adminService = {
     })
     return mapUser(data)
   },
+
+  /** Récupère les quartiers et types de logement en attente de validation. */
+  async listReferentielsEnAttente() {
+    const { data } = await api.get('/administration/referentiels/en-attente')
+    return data || { quartiers: [], types: [] }
+  },
+
+  /** Valide un quartier ou un type de logement en attente. */
+  async validerReferentiel(ressource, id) {
+    const { data } = await api.patch(`/administration/referentiels/${ressource}/${id}/valider`)
+    return data
+  },
+
+  /** Fusionne une entrée en attente dans une entrée déjà validée. */
+  async fusionnerReferentiel(ressource, id, cibleId) {
+    const { data } = await api.post(`/administration/referentiels/${ressource}/${id}/fusionner`, {
+      cible_id: Number(cibleId),
+    })
+    return data
+  },
+
+  /** Liste des cibles valides pour la fusion (réutilise GET /logements/quartiers et /types). */
+  async listCiblesValides(ressource) {
+    const endpoint = ressource === 'quartiers' ? '/logements/quartiers' : '/logements/types'
+    const { data } = await api.get(endpoint)
+    return (data || []).filter((item) => item.est_valide !== false)
+  },
 }

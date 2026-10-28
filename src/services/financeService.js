@@ -116,9 +116,14 @@ export const financeService = {
 
   // --- Administrateur ---
 
-  async listPaiementsAVerifier() {
-    const { data } = await api.get('/finances/paiements', { params: { statut: 'declare' } })
-    return (data || []).map(mapPaiement)
+  async listPaiementsAVerifier(page = 1) {
+    const params = { statut: 'declare' }
+    if (page > 1) params.page = page
+    const response = await api.get('/finances/paiements', { params })
+    return {
+      items: (response.data || []).map(mapPaiement),
+      meta: response.meta || null,
+    }
   },
 
   /** decision : 'VALIDE' | 'REJETE' */
