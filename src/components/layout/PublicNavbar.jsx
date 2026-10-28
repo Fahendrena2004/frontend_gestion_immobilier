@@ -1,6 +1,6 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { Home, LogIn, Menu, X, Building2 } from 'lucide-react'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Button from '@/components/ui/Button'
 import Avatar from '@/components/ui/Avatar'
 import DropdownMenu from '@/components/ui/DropdownMenu'
@@ -32,10 +32,57 @@ export default function PublicNavbar() {
     }
   }
 
-  const isActive = (target) => {
-    if (target === 'top') return location.pathname === '/'
-    return false
-  }
+  const [activeSection, setActiveSection] = useState('top')
+
+  useEffect(() => {
+    if (location.pathname !== '/') {
+      setActiveSection(null)
+      return
+    }
+
+    const SECTION_IDS = ['nos-logements', 'comment-ca-marche', 'espace-proprietaire', 'faq']
+    const REFERENCE_LINE = 120
+
+    function calculerSection() {
+      if (
+        window.innerHeight + window.scrollY >=
+        document.documentElement.scrollHeight - 2
+      ) {
+        setActiveSection('faq')
+        return
+      }
+
+      let active = 'top'
+      for (const id of SECTION_IDS) {
+        const el = document.getElementById(id)
+        if (el && el.getBoundingClientRect().top <= REFERENCE_LINE) {
+          active = id
+        }
+      }
+      setActiveSection(active)
+    }
+
+    let rafId = null
+    function onScroll() {
+      if (rafId) return
+      rafId = requestAnimationFrame(() => {
+        calculerSection()
+        rafId = null
+      })
+    }
+
+    calculerSection()
+    window.addEventListener('scroll', onScroll, { passive: true })
+    window.addEventListener('resize', onScroll, { passive: true })
+
+    return () => {
+      window.removeEventListener('scroll', onScroll)
+      window.removeEventListener('resize', onScroll)
+      if (rafId) cancelAnimationFrame(rafId)
+    }
+  }, [location.pathname])
+
+  const isActive = (target) => location.pathname === '/' && activeSection === target
 
   return (
     <>
@@ -66,28 +113,40 @@ export default function PublicNavbar() {
             <button
               type="button"
               onClick={() => goToSection('nos-logements')}
-              className="rounded-md px-3 py-2 text-sm font-medium text-ink-600 hover:text-brand-700 hover:bg-ink-50 transition-colors"
+              className={cn(
+                'rounded-md px-3 py-2 text-sm font-medium transition-colors',
+                isActive('nos-logements') ? 'text-brand-700 bg-brand-50' : 'text-ink-600 hover:text-brand-700 hover:bg-ink-50'
+              )}
             >
               Logements
             </button>
             <button
               type="button"
               onClick={() => goToSection('comment-ca-marche')}
-              className="rounded-md px-3 py-2 text-sm font-medium text-ink-600 hover:text-brand-700 hover:bg-ink-50 transition-colors"
+              className={cn(
+                'rounded-md px-3 py-2 text-sm font-medium transition-colors',
+                isActive('comment-ca-marche') ? 'text-brand-700 bg-brand-50' : 'text-ink-600 hover:text-brand-700 hover:bg-ink-50'
+              )}
             >
               Comment ça marche
             </button>
             <button
               type="button"
               onClick={() => goToSection('espace-proprietaire')}
-              className="rounded-md px-3 py-2 text-sm font-medium text-ink-600 hover:text-brand-700 hover:bg-ink-50 transition-colors"
+              className={cn(
+                'rounded-md px-3 py-2 text-sm font-medium transition-colors',
+                isActive('espace-proprietaire') ? 'text-brand-700 bg-brand-50' : 'text-ink-600 hover:text-brand-700 hover:bg-ink-50'
+              )}
             >
               Propriétaires
             </button>
             <button
               type="button"
               onClick={() => goToSection('faq')}
-              className="rounded-md px-3 py-2 text-sm font-medium text-ink-600 hover:text-brand-700 hover:bg-ink-50 transition-colors"
+              className={cn(
+                'rounded-md px-3 py-2 text-sm font-medium transition-colors',
+                isActive('faq') ? 'text-brand-700 bg-brand-50' : 'text-ink-600 hover:text-brand-700 hover:bg-ink-50'
+              )}
             >
               FAQ
             </button>
@@ -162,28 +221,40 @@ export default function PublicNavbar() {
               <button
                 type="button"
                 onClick={() => goToSection('nos-logements')}
-                className="rounded-lg px-4 py-3 text-left text-sm font-medium text-ink-700 hover:bg-ink-50 transition-colors"
+                className={cn(
+                  'rounded-lg px-4 py-3 text-left text-sm font-medium transition-colors',
+                  isActive('nos-logements') ? 'bg-brand-50 text-brand-700' : 'text-ink-700 hover:bg-ink-50'
+                )}
               >
                 Logements
               </button>
               <button
                 type="button"
                 onClick={() => goToSection('comment-ca-marche')}
-                className="rounded-lg px-4 py-3 text-left text-sm font-medium text-ink-700 hover:bg-ink-50 transition-colors"
+                className={cn(
+                  'rounded-lg px-4 py-3 text-left text-sm font-medium transition-colors',
+                  isActive('comment-ca-marche') ? 'bg-brand-50 text-brand-700' : 'text-ink-700 hover:bg-ink-50'
+                )}
               >
                 Comment ça marche
               </button>
               <button
                 type="button"
                 onClick={() => goToSection('espace-proprietaire')}
-                className="rounded-lg px-4 py-3 text-left text-sm font-medium text-ink-700 hover:bg-ink-50 transition-colors"
+                className={cn(
+                  'rounded-lg px-4 py-3 text-left text-sm font-medium transition-colors',
+                  isActive('espace-proprietaire') ? 'bg-brand-50 text-brand-700' : 'text-ink-700 hover:bg-ink-50'
+                )}
               >
                 Propriétaires
               </button>
               <button
                 type="button"
                 onClick={() => goToSection('faq')}
-                className="rounded-lg px-4 py-3 text-left text-sm font-medium text-ink-700 hover:bg-ink-50 transition-colors"
+                className={cn(
+                  'rounded-lg px-4 py-3 text-left text-sm font-medium transition-colors',
+                  isActive('faq') ? 'bg-brand-50 text-brand-700' : 'text-ink-700 hover:bg-ink-50'
+                )}
               >
                 FAQ
               </button>
