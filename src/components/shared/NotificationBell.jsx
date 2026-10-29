@@ -25,9 +25,17 @@ export default function NotificationBell() {
   }, [])
 
   useEffect(() => {
-    charger()
-    const intervalle = setInterval(charger, INTERVALLE_RAFRAICHISSEMENT)
-    return () => clearInterval(intervalle)
+    const timeoutId = setTimeout(charger, 2000)
+    const intervalId = setInterval(() => {
+      if (!document.hidden) {
+        charger()
+      }
+    }, INTERVALLE_RAFRAICHISSEMENT)
+
+    return () => {
+      clearTimeout(timeoutId)
+      clearInterval(intervalId)
+    }
   }, [charger])
 
   useEffect(() => {
