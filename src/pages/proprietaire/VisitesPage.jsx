@@ -134,7 +134,10 @@ export default function VisitesPage() {
   const [dialogError, setDialogError] = useState(null)
 
   function remplacer(misAJour) {
-    setVisites((prev) => prev.map((v) => (v.id === misAJour.id ? { ...v, ...misAJour } : v)))
+    const champsRenseignes = Object.fromEntries(
+      Object.entries(misAJour).filter(([, valeur]) => valeur !== null && valeur !== undefined)
+    )
+    setVisites((prev) => prev.map((v) => (v.id === misAJour.id ? { ...v, ...champsRenseignes } : v)))
   }
 
   async function annuler(id) {
@@ -223,9 +226,9 @@ export default function VisitesPage() {
             <Card key={v.id} className="rounded-xl transition-shadow duration-200 motion-safe:hover:shadow-md">
               <CardContent className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
                 <div className="flex min-w-0 gap-3">
-                  <Avatar name={v.locataireNom} />
+                  <Avatar name={v.locataireNom ?? ''} />
                   <div className="min-w-0">
-                    <p className="font-display text-base font-semibold text-ink-900">{v.locataireNom}</p>
+                    <p className="font-display text-base font-semibold text-ink-900">{v.locataireNom ?? 'Locataire'}</p>
                     <p className="mt-0.5 flex items-center gap-1.5 text-sm text-ink-500">
                       <Building2 className="h-3.5 w-3.5 shrink-0 text-brand-400" aria-hidden="true" />
                       <span className="truncate">{v.logementTitre}</span>
